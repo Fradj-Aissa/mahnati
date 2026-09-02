@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Users, BookOpen, Play, FileText, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { sampleLessons } from "@/lib/data";
 import { useCourse } from "@/hooks/use-courses";
 import { CourseDetailSkeleton } from "@/components/skeletons/CourseDetailSkeleton";
+import { useAuth } from "@/hooks/use-auth";
+import { useEnrollInCourse, useEnrollment } from "@/hooks/use-dashboard";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/courses/$courseId")({
   pendingComponent: CourseDetailSkeleton,
@@ -30,7 +33,29 @@ export const Route = createFileRoute("/courses/$courseId")({
 
 function CourseDetailPage() {
   const { courseId } = Route.useParams();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const { data: course, isLoading } = useCourse(courseId);
+  const { data: enrollment, isLoading: enrollmentLoading } = useEnrollment(courseId);
+  const enroll = useEnrollInCourse();
+
+  const handleEnroll = async () => {
+    if (!user) {
+      navigate({ to: "/login" });
+      return;
+    }
+    if (enrollment) {
+      navigate({ to: "/dashboard/courses" });
+      return;
+    }
+    try {
+      await enroll.mutateAsync(courseId);
+      toast.success("تم التسجيل في الدورة بنجاح");
+      navigate({ to: "/dashboard/courses" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر التسجيل في الدورة");
+    }
+  };
 
   if (isLoading) return <CourseDetailSkeleton />;
 
@@ -86,7 +111,7 @@ function CourseDetailPage() {
               <div className="w-full rounded-2xl border border-primary-foreground/10 bg-primary-foreground/10 p-6 backdrop-blur-sm lg:w-80">
                 <div className="text-center">
                   <span className="text-3xl font-bold text-primary-foreground">مجاني</span>
-                  {lessons.length > 0 ? (
+                  {enrollment && lessons.length > 0 ? (
                     <Button asChild size="lg" className="mt-4 w-full gradient-accent border-0 text-primary-foreground">
                       <Link
                         to="/learn/$courseId/$lessonId"
@@ -96,8 +121,8 @@ function CourseDetailPage() {
                       </Link>
                     </Button>
                   ) : (
-                    <Button size="lg" className="mt-4 w-full gradient-accent border-0 text-primary-foreground">
-                      سجل الآن
+                    <Button size="lg" onClick={handleEnroll} disabled={enroll.isPending || enrollmentLoading} className="mt-4 w-full gradient-accent border-0 text-primary-foreground">
+                      {enroll.isPending ? "جارٍ التسجيل..." : enrollment ? "الذهاب إلى دوراتي" : "سجل الآن"}
                     </Button>
                   )}
                   <p className="mt-3 text-xs text-primary-foreground/60">وصول مدى الحياة • شهادة إتمام</p>

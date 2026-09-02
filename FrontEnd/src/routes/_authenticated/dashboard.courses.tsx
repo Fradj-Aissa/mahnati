@@ -1,13 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Play, Clock, BookOpen } from "lucide-react";
+import { Search, Play, Clock, BookOpen, Image as ImageIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { enrolledCourses, type EnrolledCourse } from "@/lib/dashboard-data";
+import { useEnrolledCourses } from "@/hooks/use-dashboard";
+import { pb } from "@/integrations/pocketbase/client";
+import type { EnrolledCourse } from "@/lib/dashboard-data";
+
+const fallbackCourseImage = "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=900&q=80";
 
 export const Route = createFileRoute("/_authenticated/dashboard/courses")({
   component: MyCoursesPage,
@@ -19,6 +23,26 @@ type Filter = "all" | "in_progress" | "completed" | "saved";
 function MyCoursesPage() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const { data: enrollments = [], isLoading } = useEnrolledCourses();
+  const enrolledCourses: EnrolledCourse[] = enrollments.flatMap((enrollment) => {
+    const course = enrollment.expand?.course as {
+      id: string;
+      title?: string;
+      category?: string;
+      thumbnail?: string;
+      thumbnail_url?: string;
+    } | undefined;
+    if (!course) return [];
+    return [{
+      id: course.id,
+      title: course.title ?? "دورة بدون عنوان",
+      category: course.category ?? "أخرى",
+      thumbnail: course.thumbnail_url || (course.thumbnail ? pb.files.getURL(course, course.thumbnail) : fallbackCourseImage),
+      progress: enrollment.progress ?? 0,
+      lastActivity: enrollment.updated ? new Date(enrollment.updated).toLocaleDateString("ar-DZ") : "",
+      status: enrollment.status,
+    }];
+  });
 
   const filtered = enrolledCourses.filter((c) => {
     const matchQ = c.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -49,7 +73,9 @@ function MyCoursesPage() {
         </Tabs>
       </div>
 
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card/50 p-12 text-center text-sm text-muted-foreground">جارٍ تحميل دوراتك...</div>
+      ) : filtered.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -77,11 +103,17 @@ function CourseCard({ course, delay }: { course: EnrolledCourse; delay: number }
       className="group overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all hover:-translate-y-1 hover:shadow-card-hover"
     >
       <div className="relative h-40 overflow-hidden">
-        <img
-          src={course.thumbnail}
-          alt={course.title}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-        />
+        {course.thumbnail ? (
+          <img
+            src={course.thumbnail}
+            alt={course.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-muted" aria-label="لا توجد صورة للدورة">
+            <ImageIcon className="h-10 w-10 text-muted-foreground" />
+          </div>
+        )}
         <Badge className={`absolute right-3 top-3 border ${statusBadge.cls}`} variant="outline">
           {statusBadge.label}
         </Badge>

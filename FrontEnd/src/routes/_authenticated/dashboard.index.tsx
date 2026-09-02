@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { dashboardStats, enrolledCourses, sessions } from "@/lib/dashboard-data";
+import { useEnrolledCourses, useMySessions } from "@/hooks/use-dashboard";
+import { pb } from "@/integrations/pocketbase/client";
+
+const fallbackCourseImage = "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=900&q=80";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: DashboardOverview,
@@ -16,9 +19,25 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
 
 function DashboardOverview() {
   const { user } = useAuth();
+  const { data: enrollments = [] } = useEnrolledCourses();
+  const { data: sessions = [] } = useMySessions();
   const fullName = user?.name || "مستخدم مهنتي";
   const email = user?.email || "";
-  const continueCourse = enrolledCourses.find((c) => c.status === "in_progress");
+  const continueEnrollment = enrollments.find((item) => item.status === "in_progress");
+  const continueRecord = continueEnrollment?.expand?.course as {
+    id: string;
+    title?: string;
+    category?: string;
+    thumbnail?: string;
+    thumbnail_url?: string;
+  } | undefined;
+  const continueCourse = continueRecord && continueEnrollment ? {
+    title: continueRecord.title ?? "دورة بدون عنوان",
+    category: continueRecord.category ?? "أخرى",
+    thumbnail: continueRecord.thumbnail_url || (continueRecord.thumbnail ? pb.files.getURL(continueRecord, continueRecord.thumbnail) : fallbackCourseImage),
+    lastActivity: new Date(continueEnrollment.updated).toLocaleDateString("ar-DZ"),
+    progress: continueEnrollment.progress ?? 0,
+  } : undefined;
   const upcoming = sessions.filter((s) => s.status === "upcoming").slice(0, 2);
 
   const initials = fullName.split(" ").map((s: string) => s[0]).slice(0, 2).join("").toUpperCase();
@@ -54,10 +73,10 @@ function DashboardOverview() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="الدورات المسجلة" value={dashboardStats.enrolledCourses} icon={BookOpen} tone="primary" delay={0.05} />
-        <StatCard label="الدروس المكتملة" value={dashboardStats.completedLessons} icon={CheckCircle2} tone="success" delay={0.1} />
-        <StatCard label="جلسات الحرفيين" value={dashboardStats.artisanSessions} icon={Video} tone="accent" delay={0.15} />
-        <StatCard label="منشورات المجتمع" value={dashboardStats.communityPosts} icon={MessagesSquare} tone="warning" delay={0.2} />
+        <StatCard label="الدورات المسجلة" value={enrollments.length} icon={BookOpen} tone="primary" delay={0.05} />
+        <StatCard label="الدورات المكتملة" value={enrollments.filter((item) => item.status === "completed").length} icon={CheckCircle2} tone="success" delay={0.1} />
+        <StatCard label="جلسات الحرفيين" value={sessions.length} icon={Video} tone="accent" delay={0.15} />
+        <StatCard label="منشورات المجتمع" value={0} icon={MessagesSquare} tone="warning" delay={0.2} />
       </div>
 
       {/* Continue learning + Upcoming sessions */}
@@ -112,9 +131,10 @@ function DashboardOverview() {
             )}
             {upcoming.map((s) => (
               <div key={s.id} className="rounded-xl border border-border/60 bg-muted/40 p-3">
-                <p className="text-sm font-semibold text-foreground">{s.artisan}</p>
+                <p className="text-sm font-semibold text-foreground">{s.artisan_name}</p>
                 <p className="text-xs text-muted-foreground">{s.specialty}</p>
-                <p className="mt-1 text-xs text-primary">{s.date} · {s.time}</p>
+                <p className="text-sm text-muted-foreground">{s.craft}</p>
+                <p className="mt-1 text-xs text-primary">{new Date(s.scheduled_at).toLocaleString("ar-DZ")}</p>
               </div>
             ))}
           </div>

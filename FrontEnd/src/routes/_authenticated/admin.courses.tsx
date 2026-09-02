@@ -39,13 +39,13 @@ type CourseForm = {
   description: string;
   students: number;
   status: "draft" | "published";
-  thumbnail_url?: string | null;
+  thumbnailFile?: File;
   attachments?: string[];
-  attachmentFiles?: { name: string; type: string; data: string }[];
+  attachmentFiles?: File[];
 };
 
 const empty: CourseForm = {
-  title: "", category: "", instructor: "", description: "", students: 0, status: "draft", thumbnail_url: null, attachments: [], attachmentFiles: [],
+  title: "", category: "", instructor: "", description: "", students: 0, status: "draft", attachments: [], attachmentFiles: [],
 };
 
 function AdminCourses() {
@@ -67,34 +67,16 @@ function AdminCourses() {
     qc.invalidateQueries({ queryKey: ["admin-stats"] });
   };
 
-  const normalizeUrls = (raw: string) => raw
-    .split(/\n|,/) 
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("فشل قراءة الملف"));
-    reader.readAsDataURL(file);
-  });
-
   const handleThumbnailInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("يرجى اختيار صورة فقط للغلاف");
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      toast.error("يرجى اختيار صورة PNG أو JPG أو WebP");
       return;
     }
-
-    try {
-      const dataUrl = await readFileAsDataUrl(file);
-      setForm((prev) => ({ ...prev, thumbnail_url: dataUrl }));
-      toast.success("تم تحويل الصورة إلى رابط نصي محلي وتمت إضافتها إلى النموذج");
-    } catch (error: any) {
-      toast.error(error.message || "حدث خطأ أثناء تحويل الصورة");
-    }
+    setForm((prev) => ({ ...prev, thumbnailFile: file }));
+    event.target.value = "";
   };
 
   const handleAttachmentInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,26 +87,17 @@ function AdminCourses() {
       toast.error("يرجى اختيار ملفات PDF فقط");
       return;
     }
-    try {
-      const attachmentFiles = await Promise.all(files.map(async (file) => ({
-        name: file.name,
-        type: file.type,
-        data: await readFileAsDataUrl(file),
-      })));
-      setForm((prev) => ({ ...prev, attachmentFiles: [...(prev.attachmentFiles ?? []), ...attachmentFiles] }));
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "تعذر قراءة ملفات PDF");
-    }
+    setForm((prev) => ({ ...prev, attachmentFiles: [...(prev.attachmentFiles ?? []), ...files] }));
     event.target.value = "";
   };
 
   const createMut = useMutation({
-    mutationFn: (v: CourseForm) => create({ data: v }),
+    mutationFn: (v: FormData) => create({ data: v }),
     onSuccess: () => { toast.success("تم إنشاء الدورة"); setOpen(false); setForm(empty); refresh(); },
     onError: (e: any) => toast.error(e.message),
   });
   const updateMut = useMutation({
-    mutationFn: (v: { id: string; patch: Partial<CourseForm> }) => update({ data: v }),
+    mutationFn: (v: FormData) => update({ data: v }),
     onSuccess: () => { toast.success("تم تحديث الدورة"); setOpen(false); setEditId(null); setForm(empty); refresh(); },
     onError: (e: any) => toast.error(e.message),
   });
@@ -145,7 +118,7 @@ function AdminCourses() {
     setForm({
       title: c.title, category: c.category, instructor: c.instructor,
       description: c.description ?? "", students: c.students, status: c.status,
-      thumbnail_url: c.thumbnail_url ?? null,
+      thumbnailFile: undefined,
       attachments: c.attachments ?? [],
       attachmentFiles: [],
     });
@@ -158,9 +131,8 @@ function AdminCourses() {
       return;
     }
 
-    const thumbnailUrl = (form.thumbnail_url ?? "").trim();
-    if (!thumbnailUrl) {
-      toast.error("أدخل رابط صورة الغلاف أو اختر صورة لتحويلها إلى نص");
+    if (!form.thumbnailFile && !editId) {
+      toast.error("اختر صورة غلاف للدورة");
       return;
     }
 
@@ -168,15 +140,20 @@ function AdminCourses() {
       setSavingCourse(true);
       toast.loading("جارٍ حفظ الدورة...", { id: "save-course" });
 
-      const payload = {
-        ...form,
-        thumbnail_url: thumbnailUrl,
-        attachments: form.attachments ?? [],
-        attachmentFiles: form.attachmentFiles ?? [],
-      };
+      const payload = new FormData();
+      payload.append("title", form.title);
+      payload.append("category", form.category);
+      payload.append("instructor", form.instructor);
+      payload.append("description", form.description);
+      payload.append("students", String(form.students));
+      payload.append("status", form.status);
+      if (form.thumbnailFile) payload.append("thumbnail", form.thumbnailFile);
+      form.attachmentFiles?.forEach((file) => payload.append("attachments", file));
 
-      if (editId) updateMut.mutate({ id: editId, patch: payload });
-      else createMut.mutate(payload);
+      if (editId) {
+        payload.append("id", editId);
+        updateMut.mutate(payload);
+      } else createMut.mutate(payload);
 
       toast.dismiss("save-course");
     } catch (error: any) {
@@ -236,16 +213,10 @@ function AdminCourses() {
                 </div>
               </div>
               <div>
-                <Label>رابط صورة الغلاف</Label>
-                <Input
-                  type="url"
-                  placeholder="https://... أو data:image/..."
-                  value={form.thumbnail_url ?? ""}
-                  onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value.trim() || null })}
-                />
-                <div className="mt-2">
-                  <Label className="mb-1 block text-xs text-muted-foreground">أو اختر صورة محلية لتحويلها إلى نص</Label>
-                  <Input type="file" accept="image/*" onChange={handleThumbnailInput} />
+                <Label>صورة الغلاف</Label>
+                <Input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleThumbnailInput} />
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {form.thumbnailFile?.name ?? (editId ? "الصورة الحالية محفوظة" : "اختر صورة PNG أو JPG أو WebP")}
                 </div>
               </div>
               <div>

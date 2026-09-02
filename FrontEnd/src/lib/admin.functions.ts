@@ -58,27 +58,19 @@ export const deleteUser = createServerFn({ method: "POST" }).middleware([require
 export const checkIsAdmin = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => ({ isAdmin: context.role === "admin" }));
 
 const courseStatus = z.enum(["draft", "published"]);
-const courseSchema = z.object({
+const courseFieldsSchema = z.object({
   title: z.string().min(1).max(200), category: z.string().min(1).max(100), instructor: z.string().min(1).max(150),
   description: z.string().max(2000).optional().nullable(), students: z.number().int().min(0).default(0), status: courseStatus.default("draft"),
-  thumbnail_url: z.string().optional().nullable(), attachments: z.array(z.string()).default([]),
-  attachmentFiles: z.array(z.object({ name: z.string(), type: z.string(), data: z.string() })).default([]),
 });
-const courseData = (data: z.infer<typeof courseSchema>) => {
-  const { thumbnail_url: _thumbnailUrl, attachments: _attachments, attachmentFiles, ...fields } = data;
-  const formData = new FormData();
-  Object.entries(fields).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) formData.append(key, String(value));
+const formDataInput = (input: unknown): FormData => {
+  if (!(input instanceof FormData)) throw new Error("بيانات الدورة غير صالحة");
+  const fields = Object.fromEntries(["title", "category", "instructor", "description", "students", "status"].map((key) => [key, input.get(key)]));
+  courseFieldsSchema.parse({
+    ...fields,
+    students: Number(fields.students ?? 0),
+    description: fields.description || null,
   });
-  attachmentFiles.forEach((file) => {
-    const [, base64] = file.data.split(",");
-    if (base64) {
-      const binary = atob(base64);
-      const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-      formData.append("attachments", new Blob([bytes], { type: file.type }), file.name);
-    }
-  });
-  return formData;
+  return input;
 };
 type CourseRecord = RecordModel & {
   title: string;
@@ -88,6 +80,7 @@ type CourseRecord = RecordModel & {
   students?: number;
   status: "draft" | "published";
   thumbnail?: string;
+  thumbnail_url?: string | null;
   attachments?: string[];
 };
 
@@ -100,7 +93,7 @@ type CourseResult = CourseRecord & {
 const courseResult = (record: CourseRecord): CourseResult => ({
   ...record,
   created_at: record.created,
-  thumbnail_url: record.thumbnail ? record.thumbnail : null,
+  thumbnail_url: record.thumbnail_url ?? (record.thumbnail ? record.thumbnail : null),
   attachments: normalizeAttachments(record.attachments),
 });
 
@@ -109,11 +102,19 @@ export const listCourses = createServerFn({ method: "GET" }).middleware([require
   const records = await (await admin()).collection("courses").getFullList({ sort: "-created" });
   return (records as CourseRecord[]).map(courseResult);
 });
-export const createCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => courseSchema.parse(input)).handler(async ({ context, data }) => {
-  requireAdmin(context.role); await (await admin()).collection("courses").create(courseData(data)); return { ok: true };
+export const createCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator(formDataInput).handler(async ({ context, data }) => {
+  requireAdmin(context.role); await (await admin()).collection("courses").create(data); return { ok: true };
 });
-export const updateCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId, patch: courseSchema.partial() }).parse(input)).handler(async ({ context, data }) => {
-  requireAdmin(context.role); await (await admin()).collection("courses").update(data.id, courseData({ ...data.patch, attachmentFiles: data.patch.attachmentFiles ?? [], attachments: data.patch.attachments ?? [] } as z.infer<typeof courseSchema>)); return { ok: true };
+export const updateCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => {
+  const formData = formDataInput(input);
+  const id = formData.get("id");
+  recordId.parse(id);
+  return formData;
+}).handler(async ({ context, data }) => {
+  requireAdmin(context.role);
+  const id = recordId.parse(data.get("id"));
+  await (await admin()).collection("courses").update(id, data);
+  return { ok: true };
 });
 export const deleteCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId }).parse(input)).handler(async ({ context, data }) => {
   requireAdmin(context.role); await (await admin()).collection("courses").delete(data.id); return { ok: true };
