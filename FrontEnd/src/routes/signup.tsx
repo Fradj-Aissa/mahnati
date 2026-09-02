@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { pb } from "@/integrations/pocketbase/client";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/signup")({
@@ -42,18 +42,30 @@ function SignupPage() {
     }
 
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: { full_name: parsed.data.fullName },
-      },
-    });
+    let error: unknown;
+    try {
+      await pb.collection("users").create({
+        email: parsed.data.email,
+        password: parsed.data.password,
+        passwordConfirm: parsed.data.password,
+        name: parsed.data.fullName,
+        role: "student",
+      });
+      await pb.collection("users").authWithPassword(parsed.data.email, parsed.data.password);
+    } catch (caught) {
+      error = caught;
+    }
     setSubmitting(false);
 
     if (error) {
-      const raw = error.message.toLowerCase();
+      const response = typeof error === "object" && error !== null && "response" in error
+        ? (error as { response?: Record<string, { message?: string }> }).response
+        : undefined;
+      const fieldMessage = response
+        ? Object.values(response).find((field) => field?.message)?.message
+        : undefined;
+      const message = fieldMessage || (error instanceof Error ? error.message : "تعذر إنشاء الحساب");
+      const raw = message.toLowerCase();
       const msg = raw.includes("already registered") || raw.includes("already been registered")
         ? "هذا البريد مسجل بالفعل"
         : raw.includes("weak") || raw.includes("pwned")
@@ -62,7 +74,7 @@ function SignupPage() {
             ? "بريد إلكتروني غير صالح"
             : raw.includes("fetch") || raw.includes("network")
               ? "تعذر الاتصال بالخادم، حاول مرة أخرى"
-              : error.message;
+              : message;
       toast.error("فشل إنشاء الحساب", { description: msg });
       return;
     }

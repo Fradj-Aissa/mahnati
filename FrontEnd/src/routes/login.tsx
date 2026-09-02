@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { pb } from "@/integrations/pocketbase/client";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/login")({
@@ -40,18 +40,22 @@ function LoginPage() {
     }
 
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword(parsed.data);
+    let error: unknown;
+    try {
+      await pb.collection("users").authWithPassword(parsed.data.email, parsed.data.password);
+    } catch (caught) {
+      error = caught;
+    }
     setSubmitting(false);
 
     if (error) {
-      const raw = error.message.toLowerCase();
+      const message = error instanceof Error ? error.message : "تعذر تسجيل الدخول";
+      const raw = message.toLowerCase();
       const msg = raw.includes("invalid login")
         ? "البريد أو كلمة المرور غير صحيحة"
-        : raw.includes("email not confirmed")
-          ? "لم يتم تأكيد البريد الإلكتروني بعد"
-          : raw.includes("fetch") || raw.includes("network")
+        : raw.includes("fetch") || raw.includes("network")
             ? "تعذر الاتصال بالخادم، حاول مرة أخرى"
-            : error.message;
+            : message;
       toast.error("فشل تسجيل الدخول", { description: msg });
       return;
     }

@@ -1,10 +1,22 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import type { RecordModel } from "pocketbase";
+import { pb } from "@/integrations/pocketbase/client";
+
+type PocketBaseUser = RecordModel & {
+  email: string;
+  name?: string;
+  avatar_url?: string;
+  role?: "student" | "artisan" | "admin";
+};
+
+interface AuthSession {
+  access_token: string;
+  user: PocketBaseUser;
+}
 
 interface AuthContextValue {
-  session: Session | null;
-  user: User | null;
+  session: AuthSession | null;
+  user: PocketBaseUser | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -12,27 +24,28 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(() => (
+    pb.authStore.isValid && pb.authStore.record
+      ? { access_token: pb.authStore.token, user: pb.authStore.record as PocketBaseUser }
+      : null
+  ));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // CRITICAL: set up listener FIRST, then fetch existing session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
+    const unsubscribe = pb.authStore.onChange((token, record) => {
+      setSession(token && record ? {
+        access_token: token,
+        user: record as PocketBaseUser,
+      } : null);
       setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session: existing } }) => {
-      setSession(existing);
-      setLoading(false);
-    });
+    setLoading(false);
 
-    return () => subscription.unsubscribe();
+    return unsubscribe;
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+  const signOut = async () => pb.authStore.clear();
 
   return (
     <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, signOut }}>
