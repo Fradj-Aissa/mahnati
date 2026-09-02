@@ -10,6 +10,10 @@ const requireAdmin = (role?: string) => {
   if (role !== "admin") throw new Error("Forbidden: admin role required");
 };
 const admin = async () => getPbAdmin();
+const normalizeAttachments = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.filter((file): file is string => typeof file === "string");
+  return typeof value === "string" && value ? [value] : [];
+};
 
 export const getAdminStats = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => {
   requireAdmin(context.role);
@@ -58,10 +62,23 @@ const courseSchema = z.object({
   title: z.string().min(1).max(200), category: z.string().min(1).max(100), instructor: z.string().min(1).max(150),
   description: z.string().max(2000).optional().nullable(), students: z.number().int().min(0).default(0), status: courseStatus.default("draft"),
   thumbnail_url: z.string().optional().nullable(), attachments: z.array(z.string()).default([]),
+  attachmentFiles: z.array(z.object({ name: z.string(), type: z.string(), data: z.string() })).default([]),
 });
 const courseData = (data: z.infer<typeof courseSchema>) => {
-  const { thumbnail_url: _thumbnailUrl, attachments: _attachments, ...fields } = data;
-  return fields;
+  const { thumbnail_url: _thumbnailUrl, attachments: _attachments, attachmentFiles, ...fields } = data;
+  const formData = new FormData();
+  Object.entries(fields).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) formData.append(key, String(value));
+  });
+  attachmentFiles.forEach((file) => {
+    const [, base64] = file.data.split(",");
+    if (base64) {
+      const binary = atob(base64);
+      const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+      formData.append("attachments", new Blob([bytes], { type: file.type }), file.name);
+    }
+  });
+  return formData;
 };
 type CourseRecord = RecordModel & {
   title: string;
@@ -84,7 +101,7 @@ const courseResult = (record: CourseRecord): CourseResult => ({
   ...record,
   created_at: record.created,
   thumbnail_url: record.thumbnail ? record.thumbnail : null,
-  attachments: record.attachments ?? [],
+  attachments: normalizeAttachments(record.attachments),
 });
 
 export const listCourses = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => {
@@ -96,7 +113,7 @@ export const createCourse = createServerFn({ method: "POST" }).middleware([requi
   requireAdmin(context.role); await (await admin()).collection("courses").create(courseData(data)); return { ok: true };
 });
 export const updateCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId, patch: courseSchema.partial() }).parse(input)).handler(async ({ context, data }) => {
-  requireAdmin(context.role); await (await admin()).collection("courses").update(data.id, courseData({ ...data.patch, attachments: data.patch.attachments ?? [] } as z.infer<typeof courseSchema>)); return { ok: true };
+  requireAdmin(context.role); await (await admin()).collection("courses").update(data.id, courseData({ ...data.patch, attachmentFiles: data.patch.attachmentFiles ?? [], attachments: data.patch.attachments ?? [] } as z.infer<typeof courseSchema>)); return { ok: true };
 });
 export const deleteCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId }).parse(input)).handler(async ({ context, data }) => {
   requireAdmin(context.role); await (await admin()).collection("courses").delete(data.id); return { ok: true };

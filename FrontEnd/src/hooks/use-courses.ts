@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { pb } from "@/integrations/pocketbase/client";
 
 export interface DBCourse {
   id: string;
@@ -10,6 +10,7 @@ export interface DBCourse {
   students: number;
   status: "draft" | "published";
   created_at: string;
+  attachments: string[];
 }
 
 export interface HomepageCategory {
@@ -68,14 +69,27 @@ function normalizeCategoryTitle(rawCategory: string): string {
   return "أخرى";
 }
 
+function normalizeAttachments(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((file): file is string => typeof file === "string");
+  return typeof value === "string" && value ? [value] : [];
+}
+
 async function fetchPublishedCourses(): Promise<DBCourse[]> {
-  const { data, error } = await supabase
-    .from("courses")
-    .select("id, title, category, description, instructor, students, status, created_at")
-    .eq("status", "published")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as DBCourse[];
+  const records = await pb.collection("courses").getFullList({
+    filter: 'status = "published"',
+    sort: "-created",
+  });
+  return records.map((record) => ({
+    id: record.id,
+    title: record.title,
+    category: record.category,
+    description: record.description ?? null,
+    instructor: record.instructor,
+    students: Number(record.students ?? 0),
+    status: record.status,
+    created_at: record.created,
+    attachments: normalizeAttachments(record.attachments).map((file) => pb.files.getURL(record, file)),
+  } as DBCourse));
 }
 
 export function usePublishedCourses() {
@@ -89,12 +103,10 @@ export function useHomepageCategories() {
   return useQuery({
     queryKey: ["homepage", "categories"],
     queryFn: async (): Promise<HomepageCategory[]> => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("category")
-        .eq("status", "published");
-
-      if (error) throw error;
+      const data = await pb.collection("courses").getFullList({
+        filter: 'status = "published"',
+        fields: "category",
+      });
 
       const categoryMap = new Map<string, HomepageCategory>();
 
@@ -130,23 +142,18 @@ export function useHomepageStats() {
   return useQuery({
     queryKey: ["homepage", "stats"],
     queryFn: async (): Promise<HomepageStats> => {
-      const [coursesResult, profilesResult, artisansResult, sessionsResult] = await Promise.all([
-        supabase.from("courses").select("id", { count: "exact", head: true }).eq("status", "published"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
-        supabase.from("artisans").select("id", { count: "exact", head: true }).eq("status", "approved"),
-        supabase.from("sessions").select("id", { count: "exact", head: true }),
+      const [coursesResult, usersResult, artisansResult, sessionsResult] = await Promise.all([
+        pb.collection("courses").getList(1, 1, { filter: 'status = "published"' }),
+        pb.collection("users").getList(1, 1),
+        pb.collection("artisans").getList(1, 1, { filter: 'status = "approved"' }),
+        pb.collection("sessions").getList(1, 1),
       ]);
 
-      if (coursesResult.error) throw coursesResult.error;
-      if (profilesResult.error) throw profilesResult.error;
-      if (artisansResult.error) throw artisansResult.error;
-      if (sessionsResult.error) throw sessionsResult.error;
-
       return {
-        students: profilesResult.count ?? 0,
-        courses: coursesResult.count ?? 0,
-        artisans: artisansResult.count ?? 0,
-        sessions: sessionsResult.count ?? 0,
+        students: usersResult.totalItems,
+        courses: coursesResult.totalItems,
+        artisans: artisansResult.totalItems,
+        sessions: sessionsResult.totalItems,
       };
     },
   });
@@ -156,13 +163,23 @@ export function useCourse(courseId: string) {
   return useQuery({
     queryKey: ["courses", courseId],
     queryFn: async (): Promise<DBCourse | null> => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, title, category, description, instructor, students, status, created_at")
-        .eq("id", courseId)
-        .maybeSingle();
-      if (error) throw error;
-      return (data as DBCourse | null) ?? null;
+      try {
+        const record = await pb.collection("courses").getOne(courseId);
+        return {
+          id: record.id,
+          title: record.title,
+          category: record.category,
+          description: record.description ?? null,
+          instructor: record.instructor,
+          students: Number(record.students ?? 0),
+          status: record.status,
+          created_at: record.created,
+          attachments: normalizeAttachments(record.attachments).map((file) => pb.files.getURL(record, file)),
+        } as DBCourse;
+      } catch (error) {
+        if (error && typeof error === "object" && "status" in error && error.status === 404) return null;
+        throw error;
+      }
     },
   });
 }

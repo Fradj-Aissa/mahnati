@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, X } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { listCourses, createCourse, updateCourse, deleteCourse } from "@/lib/admin.functions";
 import { toast } from "sonner";
+import { pb } from "@/integrations/pocketbase/client";
 
 export const Route = createFileRoute("/_authenticated/admin/courses")({
   component: AdminCourses,
@@ -40,10 +41,11 @@ type CourseForm = {
   status: "draft" | "published";
   thumbnail_url?: string | null;
   attachments?: string[];
+  attachmentFiles?: { name: string; type: string; data: string }[];
 };
 
 const empty: CourseForm = {
-  title: "", category: "", instructor: "", description: "", students: 0, status: "draft", thumbnail_url: null, attachments: [],
+  title: "", category: "", instructor: "", description: "", students: 0, status: "draft", thumbnail_url: null, attachments: [], attachmentFiles: [],
 };
 
 function AdminCourses() {
@@ -73,11 +75,11 @@ function AdminCourses() {
   const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("فشل تحويل الصورة إلى نص"));
+    reader.onerror = () => reject(new Error("فشل قراءة الملف"));
     reader.readAsDataURL(file);
   });
 
-  const handleThumbnailInput = async (event: any) => {
+  const handleThumbnailInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -93,6 +95,27 @@ function AdminCourses() {
     } catch (error: any) {
       toast.error(error.message || "حدث خطأ أثناء تحويل الصورة");
     }
+  };
+
+  const handleAttachmentInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
+    const invalid = files.find((file) => file.type !== "application/pdf");
+    if (invalid) {
+      toast.error("يرجى اختيار ملفات PDF فقط");
+      return;
+    }
+    try {
+      const attachmentFiles = await Promise.all(files.map(async (file) => ({
+        name: file.name,
+        type: file.type,
+        data: await readFileAsDataUrl(file),
+      })));
+      setForm((prev) => ({ ...prev, attachmentFiles: [...(prev.attachmentFiles ?? []), ...attachmentFiles] }));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر قراءة ملفات PDF");
+    }
+    event.target.value = "";
   };
 
   const createMut = useMutation({
@@ -124,6 +147,7 @@ function AdminCourses() {
       description: c.description ?? "", students: c.students, status: c.status,
       thumbnail_url: c.thumbnail_url ?? null,
       attachments: c.attachments ?? [],
+      attachmentFiles: [],
     });
     setOpen(true);
   };
@@ -135,8 +159,6 @@ function AdminCourses() {
     }
 
     const thumbnailUrl = (form.thumbnail_url ?? "").trim();
-    const attachmentUrls = normalizeUrls((form.attachments ?? []).join("\n"));
-
     if (!thumbnailUrl) {
       toast.error("أدخل رابط صورة الغلاف أو اختر صورة لتحويلها إلى نص");
       return;
@@ -149,7 +171,8 @@ function AdminCourses() {
       const payload = {
         ...form,
         thumbnail_url: thumbnailUrl,
-        attachments: attachmentUrls,
+        attachments: form.attachments ?? [],
+        attachmentFiles: form.attachmentFiles ?? [],
       };
 
       if (editId) updateMut.mutate({ id: editId, patch: payload });
@@ -226,15 +249,23 @@ function AdminCourses() {
                 </div>
               </div>
               <div>
-                <Label>روابط المرفقات (PDF)</Label>
-                <Textarea
-                  placeholder="https://example.com/file1.pdf\nhttps://example.com/file2.pdf"
-                  value={(form.attachments ?? []).join("\n")}
-                  onChange={(e) => setForm({
-                    ...form,
-                    attachments: normalizeUrls(e.target.value),
-                  })}
-                />
+                <Label>ملفات الدورة (PDF)</Label>
+                <Input type="file" accept="application/pdf,.pdf" multiple onChange={handleAttachmentInput} />
+                {(form.attachmentFiles ?? []).length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {form.attachmentFiles?.map((file, index) => (
+                      <div key={`${file.name}-${index}`} className="flex items-center justify-between rounded-md border px-2 py-1 text-sm">
+                        <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-destructive" />{file.name}</span>
+                        <button type="button" aria-label={`حذف ${file.name}`} onClick={() => setForm({ ...form, attachmentFiles: form.attachmentFiles?.filter((_, i) => i !== index) })}>
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(form.attachments ?? []).length > 0 && (
+                  <p className="mt-2 text-xs text-muted-foreground">{form.attachments?.length} ملف محفوظ مسبقاً</p>
+                )}
               </div>
               <div>
                 <Label>الوصف</Label>
@@ -265,6 +296,7 @@ function AdminCourses() {
                   <TableHead className="text-right">الفئة</TableHead>
                   <TableHead className="text-right">المدرّب</TableHead>
                   <TableHead className="text-right">الطلاب</TableHead>
+                  <TableHead className="text-right">المرفقات</TableHead>
                   <TableHead className="text-right">الحالة</TableHead>
                   <TableHead className="text-right">إجراءات</TableHead>
                 </TableRow>
@@ -276,6 +308,17 @@ function AdminCourses() {
                     <TableCell>{c.category}</TableCell>
                     <TableCell className="text-muted-foreground">{c.instructor}</TableCell>
                     <TableCell>{c.students}</TableCell>
+                    <TableCell>
+                      {(Array.isArray(c.attachments) ? c.attachments : c.attachments ? [c.attachments] : []).length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {(Array.isArray(c.attachments) ? c.attachments : [c.attachments]).map((file: string, index: number) => (
+                            <a key={`${file}-${index}`} href={pb.files.getURL(c, file)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                              <FileText className="h-3 w-3" /> PDF {index + 1}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={c.status === "published" ? "default" : "secondary"}>
                         {c.status === "published" ? "منشورة" : "مسودة"}
@@ -316,7 +359,7 @@ function AdminCourses() {
                 ))}
                 {(data ?? []).length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       لا توجد دورات بعد
                     </TableCell>
                   </TableRow>

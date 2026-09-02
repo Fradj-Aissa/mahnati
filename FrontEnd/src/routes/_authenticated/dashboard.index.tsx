@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/dashboard/")({
 
 function DashboardOverview() {
   const { user } = useAuth();
-  const fullName = user?.user_metadata?.full_name || "مستخدم مهنتي";
+  const fullName = user?.name || "مستخدم مهنتي";
   const email = user?.email || "";
   const continueCourse = enrolledCourses.find((c) => c.status === "in_progress");
   const upcoming = sessions.filter((s) => s.status === "upcoming").slice(0, 2);
@@ -34,7 +34,7 @@ function DashboardOverview() {
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 border-2 border-white/30 sm:h-20 sm:w-20">
-              <AvatarImage src={user?.user_metadata?.avatar_url} />
+              <AvatarImage src={user?.avatar_url} />
               <AvatarFallback className="bg-white/20 text-xl text-white">{initials}</AvatarFallback>
             </Avatar>
             <div>

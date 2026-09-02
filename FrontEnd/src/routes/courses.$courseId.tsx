@@ -166,6 +166,26 @@ function CourseDetailPage() {
               {lessons.length === 0 && (
                 <p className="py-8 text-center text-muted-foreground">سيتم إضافة الدروس قريباً</p>
               )}
+
+              {course.attachments.length > 0 && (
+                <div className="mt-8 rounded-2xl border border-border bg-card p-5 shadow-card">
+                  <h3 className="font-semibold text-foreground">ملفات الدورة</h3>
+                  <div className="mt-3 space-y-2">
+                    {course.attachments.map((file, index) => (
+                      <a
+                        key={file}
+                        href={file}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 rounded-lg border border-border/60 p-3 text-sm text-primary hover:bg-muted"
+                      >
+                        <FileText className="h-4 w-4" />
+                        تحميل ملف PDF {index + 1}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
