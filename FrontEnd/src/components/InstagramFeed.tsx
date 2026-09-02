@@ -1,17 +1,6 @@
-import { useEffect } from "react";
 import { Instagram } from "lucide-react";
 
 export function InstagramFeed() {
-  useEffect(() => {
-    const SRC = "https://elfsightcdn.com/platform.js";
-    if (!document.querySelector(`script[src="${SRC}"]`)) {
-      const s = document.createElement("script");
-      s.src = SRC;
-      s.async = true;
-      document.body.appendChild(s);
-    }
-  }, []);
-
   return (
     <section dir="rtl" className="py-16 sm:py-20 bg-muted/20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -36,12 +25,6 @@ export function InstagramFeed() {
           </a>
         </div>
 
-        <div className="mt-10">
-          <div
-            className="elfsight-app-0c3e6fcc-3aef-4aae-a75a-2714e9c51fce"
-            data-elfsight-app-lazy
-          />
-        </div>
       </div>
     </section>
   );

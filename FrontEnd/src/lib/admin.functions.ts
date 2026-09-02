@@ -1,323 +1,118 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requirePocketBaseAuth } from "@/integrations/pocketbase/auth-middleware";
+import { getPbAdmin } from "@/integrations/pocketbase/client.server";
+import type { RecordModel } from "pocketbase";
 
-async function assertAdmin(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("has_role", {
-    _user_id: userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden: admin role required");
-}
-
-export const getAdminStats = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
-
-    const [
-      { count: totalUsers },
-      { data: roles },
-      { data: recent },
-      { count: totalCourses },
-      { count: totalArtisans },
-      { count: totalSessions },
-    ] = await Promise.all([
-      supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("user_roles").select("role"),
-      supabaseAdmin
-        .from("profiles")
-        .select("id, full_name, email, created_at")
-        .order("created_at", { ascending: false })
-        .limit(5),
-      supabaseAdmin.from("courses").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("artisans").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("sessions").select("*", { count: "exact", head: true }),
-    ]);
-
-    const roleCounts = { student: 0, artisan: 0, admin: 0 } as Record<string, number>;
-    (roles ?? []).forEach((r: any) => {
-      roleCounts[r.role] = (roleCounts[r.role] ?? 0) + 1;
-    });
-
-    return {
-      totalUsers: totalUsers ?? 0,
-      students: roleCounts.student ?? 0,
-      artisans: roleCounts.artisan ?? 0,
-      admins: roleCounts.admin ?? 0,
-      totalCourses: totalCourses ?? 0,
-      totalArtisans: totalArtisans ?? 0,
-      totalSessions: totalSessions ?? 0,
-      recent: recent ?? [],
-    };
-  });
-
-export const listUsers = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
-
-    const { data: profiles, error } = await supabaseAdmin
-      .from("profiles")
-      .select("id, full_name, email, avatar_url, created_at")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-
-    const { data: roles } = await supabaseAdmin.from("user_roles").select("user_id, role");
-    const rolesByUser = new Map<string, string[]>();
-    (roles ?? []).forEach((r: any) => {
-      const arr = rolesByUser.get(r.user_id) ?? [];
-      arr.push(r.role);
-      rolesByUser.set(r.user_id, arr);
-    });
-
-    return (profiles ?? []).map((p: any) => ({
-      ...p,
-      roles: rolesByUser.get(p.id) ?? [],
-    }));
-  });
-
+const recordId = z.string().min(1);
 const roleSchema = z.enum(["student", "artisan", "admin"]);
+const requireAdmin = (role?: string) => {
+  if (role !== "admin") throw new Error("Forbidden: admin role required");
+};
+const admin = async () => getPbAdmin();
 
-export const setUserRole = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ userId: z.string().uuid(), role: roleSchema }).parse(input),
-  )
-  .handler(async ({ context, data }) => {
-    const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
+export const getAdminStats = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => {
+  requireAdmin(context.role);
+  const pb = await admin();
+  const [users, courses, artisans, sessions] = await Promise.all([
+    pb.collection("users").getFullList({ sort: "-created" }),
+    pb.collection("courses").getList(1, 1),
+    pb.collection("artisans").getList(1, 1),
+    pb.collection("sessions").getList(1, 1),
+  ]);
+  const counts = { student: 0, artisan: 0, admin: 0 };
+  users.forEach((user) => { if (user.role in counts) counts[user.role as keyof typeof counts]++; });
+  return {
+    totalUsers: users.length,
+    students: counts.student,
+    artisans: counts.artisan,
+    admins: counts.admin,
+    totalCourses: courses.totalItems,
+    totalArtisans: artisans.totalItems,
+    totalSessions: sessions.totalItems,
+    recent: users.slice(0, 5).map((user) => ({ id: user.id, full_name: user.name, email: user.email, created_at: user.created })),
+  };
+});
 
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
-    const { error } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: data.userId, role: data.role });
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+export const listUsers = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => {
+  requireAdmin(context.role);
+  const users = await (await admin()).collection("users").getFullList({ sort: "-created" });
+  return users.map((user) => ({ id: user.id, full_name: user.name, email: user.email, avatar_url: user.avatar_url, created_at: user.created, roles: user.role ? [user.role] : [] }));
+});
 
-export const deleteUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ userId: z.string().uuid() }).parse(input))
-  .handler(async ({ context, data }) => {
-    const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
-    if (data.userId === userId) throw new Error("لا يمكنك حذف حسابك الخاص");
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+export const setUserRole = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ userId: recordId, role: roleSchema }).parse(input)).handler(async ({ context, data }) => {
+  requireAdmin(context.role);
+  await (await admin()).collection("users").update(data.userId, { role: data.role });
+  return { ok: true };
+});
+export const deleteUser = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ userId: recordId }).parse(input)).handler(async ({ context, data }) => {
+  requireAdmin(context.role);
+  if (data.userId === context.userId) throw new Error("لا يمكنك حذف حسابك الخاص");
+  await (await admin()).collection("users").delete(data.userId);
+  return { ok: true };
+});
+export const checkIsAdmin = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => ({ isAdmin: context.role === "admin" }));
 
-export const checkIsAdmin = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { data } = await supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
-    return { isAdmin: !!data };
-  });
-
-// ============ COURSES ============
-const courseStatusSchema = z.enum(["draft", "published"]);
-const mediaUrlSchema = z
-  .string()
-  .refine((value) => {
-    if (!value) return true;
-    try {
-      const url = new URL(value);
-      return ["http:", "https:", "data:"].includes(url.protocol);
-    } catch {
-      return /^data:image\//i.test(value) || /^https?:\/\//i.test(value);
-    }
-  }, "Must be a valid http, https, or data:image URL");
-
+const courseStatus = z.enum(["draft", "published"]);
 const courseSchema = z.object({
-  title: z.string().min(1).max(200),
-  category: z.string().min(1).max(100),
-  instructor: z.string().min(1).max(150),
-  description: z.string().max(2000).optional().nullable(),
-  students: z.number().int().min(0).default(0),
-  status: courseStatusSchema.default("draft"),
-  thumbnail_url: mediaUrlSchema.optional().nullable(),
-  attachments: z.array(mediaUrlSchema).default([]),
+  title: z.string().min(1).max(200), category: z.string().min(1).max(100), instructor: z.string().min(1).max(150),
+  description: z.string().max(2000).optional().nullable(), students: z.number().int().min(0).default(0), status: courseStatus.default("draft"),
+  thumbnail_url: z.string().optional().nullable(), attachments: z.array(z.string()).default([]),
+});
+const courseData = (data: z.infer<typeof courseSchema>) => {
+  const { thumbnail_url: _thumbnailUrl, attachments: _attachments, ...fields } = data;
+  return fields;
+};
+type CourseRecord = RecordModel & {
+  title: string;
+  category: string;
+  instructor: string;
+  description?: string | null;
+  students?: number;
+  status: "draft" | "published";
+  thumbnail?: string;
+  attachments?: string[];
+};
+
+type CourseResult = CourseRecord & {
+  created_at: string;
+  thumbnail_url: string | null;
+  attachments: string[];
+};
+
+const courseResult = (record: CourseRecord): CourseResult => ({
+  ...record,
+  created_at: record.created,
+  thumbnail_url: record.thumbnail ? record.thumbnail : null,
+  attachments: record.attachments ?? [],
 });
 
-export const listCourses = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { data, error } = await supabaseAdmin
-      .from("courses")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
-
-export const createCourse = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => courseSchema.parse(i))
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await supabaseAdmin.from("courses").insert(data);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const updateCourse = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z.object({ id: z.string().uuid(), patch: courseSchema.partial() }).parse(i),
-  )
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await supabaseAdmin.from("courses").update(data.patch).eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const deleteCourse = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await supabaseAdmin.from("courses").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-// ============ ARTISANS ============
-const artisanStatusSchema = z.enum(["pending", "approved", "rejected"]);
-const artisanSchema = z.object({
-  name: z.string().min(1).max(150),
-  craft: z.string().min(1).max(100),
-  bio: z.string().max(2000).optional().nullable(),
-  rating: z.number().min(0).max(5).default(0),
-  sessions_count: z.number().int().min(0).default(0),
-  status: artisanStatusSchema.default("pending"),
+export const listCourses = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => {
+  requireAdmin(context.role);
+  const records = await (await admin()).collection("courses").getFullList({ sort: "-created" });
+  return (records as CourseRecord[]).map(courseResult);
+});
+export const createCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => courseSchema.parse(input)).handler(async ({ context, data }) => {
+  requireAdmin(context.role); await (await admin()).collection("courses").create(courseData(data)); return { ok: true };
+});
+export const updateCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId, patch: courseSchema.partial() }).parse(input)).handler(async ({ context, data }) => {
+  requireAdmin(context.role); await (await admin()).collection("courses").update(data.id, courseData({ ...data.patch, attachments: data.patch.attachments ?? [] } as z.infer<typeof courseSchema>)); return { ok: true };
+});
+export const deleteCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId }).parse(input)).handler(async ({ context, data }) => {
+  requireAdmin(context.role); await (await admin()).collection("courses").delete(data.id); return { ok: true };
 });
 
-export const listArtisans = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { data, error } = await supabaseAdmin
-      .from("artisans")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
+const artisanStatus = z.enum(["pending", "approved", "rejected"]);
+const artisanSchema = z.object({ name: z.string().min(1).max(150), craft: z.string().min(1).max(100), bio: z.string().max(2000).optional().nullable(), rating: z.number().min(0).max(5).default(0), sessions_count: z.number().int().min(0).default(0), status: artisanStatus.default("pending") });
+export const listArtisans = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => { requireAdmin(context.role); return (await (await admin()).collection("artisans").getFullList({ sort: "-created" })).map((record) => ({ ...record, created_at: record.created })); });
+export const createArtisan = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => artisanSchema.parse(input)).handler(async ({ context, data }) => { requireAdmin(context.role); await (await admin()).collection("artisans").create(data); return { ok: true }; });
+export const updateArtisan = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId, patch: artisanSchema.partial() }).parse(input)).handler(async ({ context, data }) => { requireAdmin(context.role); await (await admin()).collection("artisans").update(data.id, data.patch); return { ok: true }; });
+export const setArtisanStatus = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId, status: artisanStatus }).parse(input)).handler(async ({ context, data }) => { requireAdmin(context.role); await (await admin()).collection("artisans").update(data.id, { status: data.status }); return { ok: true }; });
+export const deleteArtisan = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId }).parse(input)).handler(async ({ context, data }) => { requireAdmin(context.role); await (await admin()).collection("artisans").delete(data.id); return { ok: true }; });
 
-export const createArtisan = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => artisanSchema.parse(i))
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await supabaseAdmin.from("artisans").insert(data);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const updateArtisan = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z.object({ id: z.string().uuid(), patch: artisanSchema.partial() }).parse(i),
-  )
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await supabaseAdmin
-      .from("artisans")
-      .update(data.patch)
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const setArtisanStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z.object({ id: z.string().uuid(), status: artisanStatusSchema }).parse(i),
-  )
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await supabaseAdmin
-      .from("artisans")
-      .update({ status: data.status })
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const deleteArtisan = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await supabaseAdmin.from("artisans").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-// ============ SESSIONS ============
-const sessionStatusSchema = z.enum(["upcoming", "completed", "cancelled"]);
-const sessionSchema = z.object({
-  artisan_name: z.string().min(1).max(150),
-  student_name: z.string().min(1).max(150),
-  craft: z.string().min(1).max(100),
-  scheduled_at: z.string().min(1),
-  status: sessionStatusSchema.default("upcoming"),
-});
-
-export const listSessions = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { data, error } = await supabaseAdmin
-      .from("sessions")
-      .select("*")
-      .order("scheduled_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
-
-export const createSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => sessionSchema.parse(i))
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await supabaseAdmin.from("sessions").insert(data);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const setSessionStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) =>
-    z.object({ id: z.string().uuid(), status: sessionStatusSchema }).parse(i),
-  )
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await supabaseAdmin
-      .from("sessions")
-      .update({ status: data.status })
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const deleteSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await supabaseAdmin.from("sessions").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+const sessionStatus = z.enum(["upcoming", "completed", "cancelled"]);
+const sessionSchema = z.object({ artisan_name: z.string().min(1).max(150), student_name: z.string().min(1).max(150), craft: z.string().min(1).max(100), scheduled_at: z.string().min(1), status: sessionStatus.default("upcoming") });
+export const listSessions = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => { requireAdmin(context.role); return (await (await admin()).collection("sessions").getFullList({ sort: "-scheduled_at" })).map((record) => ({ ...record, created_at: record.created })); });
+export const createSession = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => sessionSchema.parse(input)).handler(async ({ context, data }) => { requireAdmin(context.role); await (await admin()).collection("sessions").create(data); return { ok: true }; });
+export const setSessionStatus = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId, status: sessionStatus }).parse(input)).handler(async ({ context, data }) => { requireAdmin(context.role); await (await admin()).collection("sessions").update(data.id, { status: data.status }); return { ok: true }; });
+export const deleteSession = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId }).parse(input)).handler(async ({ context, data }) => { requireAdmin(context.role); await (await admin()).collection("sessions").delete(data.id); return { ok: true }; });

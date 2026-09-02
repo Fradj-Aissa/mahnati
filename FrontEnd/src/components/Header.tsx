@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, GraduationCap, Moon, Sun, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,14 @@ import { toast } from "sonner";
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const isAdmin = useIsAdmin();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -59,7 +64,7 @@ export function Header() {
           >
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
-          {user ? (
+          {mounted && (user ? (
             <>
               {isAdmin && (
                 <Button variant="outline" size="sm" asChild className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive">
@@ -86,7 +91,7 @@ export function Header() {
                 <Link to="/signup">ابدأ مجاناً</Link>
               </Button>
             </>
-          )}
+          ))}
         </div>
 
         {/* Mobile Toggle */}
@@ -130,7 +135,7 @@ export function Header() {
                 </Link>
               ))}
               <div className="mt-2 flex flex-col gap-2">
-                {user ? (
+                {mounted && (user ? (
                   <>
                     {isAdmin && (
                       <Button variant="outline" size="sm" asChild className="border-destructive/40 text-destructive">
@@ -156,7 +161,7 @@ export function Header() {
                       <Link to="/signup" onClick={() => setMobileOpen(false)}>ابدأ مجاناً</Link>
                     </Button>
                   </>
-                )}
+                ))}
               </div>
             </div>
           </motion.div>
