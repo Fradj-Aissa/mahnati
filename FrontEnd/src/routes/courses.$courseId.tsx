@@ -9,6 +9,7 @@ import { CourseDetailSkeleton } from "@/components/skeletons/CourseDetailSkeleto
 import { useAuth } from "@/hooks/use-auth";
 import { useEnrollInCourse, useEnrollment } from "@/hooks/use-dashboard";
 import { toast } from "sonner";
+import { CourseComments } from "@/components/comments/CourseComments";
 
 export const Route = createFileRoute("/courses/$courseId")({
   pendingComponent: CourseDetailSkeleton,
@@ -234,6 +235,7 @@ function CourseDetailPage() {
             </div>
           </div>
         </div>
+        <CourseComments courseId={courseId} />
       </div>
     </div>
   );
