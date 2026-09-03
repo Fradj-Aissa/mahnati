@@ -46,7 +46,7 @@ function AdminOverview() {
         <CardContent>
           {data?.recent?.length ? (
             <ul className="divide-y divide-border">
-              {data.recent.map((u: any) => (
+              {data.recent.map((u) => (
                 <li key={u.id} className="flex items-center justify-between py-3">
                   <div>
                     <p className="font-medium text-foreground">{u.full_name || "بدون اسم"}</p>

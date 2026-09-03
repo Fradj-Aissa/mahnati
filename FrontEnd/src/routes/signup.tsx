@@ -18,7 +18,7 @@ export const Route = createFileRoute("/signup")({
 const signupSchema = z.object({
   fullName: z.string().trim().min(2, { message: "الاسم قصير جداً" }).max(100),
   email: z.string().trim().email({ message: "بريد إلكتروني غير صالح" }).max(255),
-  password: z.string().min(6, { message: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }).max(72),
+  password: z.string().min(8, { message: "كلمة المرور يجب أن تكون 8 أحرف على الأقل" }).max(72),
 });
 
 function SignupPage() {
@@ -136,7 +136,7 @@ function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <p className="text-xs text-muted-foreground">6 أحرف على الأقل</p>
+            <p className="text-xs text-muted-foreground">8 أحرف على الأقل</p>
           </div>
 
           <Button type="submit" className="w-full" disabled={submitting}>

@@ -94,17 +94,25 @@ function AdminCourses() {
   const createMut = useMutation({
     mutationFn: (v: FormData) => create({ data: v }),
     onSuccess: () => { toast.success("تم إنشاء الدورة"); setOpen(false); setForm(empty); refresh(); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "تعذر إنشاء الدورة"),
   });
   const updateMut = useMutation({
     mutationFn: (v: FormData) => update({ data: v }),
     onSuccess: () => { toast.success("تم تحديث الدورة"); setOpen(false); setEditId(null); setForm(empty); refresh(); },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "تعذر تحديث الدورة"),
   });
   const delMut = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
-    onSuccess: () => { toast.success("تم حذف الدورة"); refresh(); },
-    onError: (e: any) => toast.error(e.message),
+    onSuccess: ({ deletedDependents }) => {
+      toast.success("تم حذف الدورة", {
+        description: deletedDependents > 0 ? `تم أيضاً حذف ${deletedDependents} سجل مرتبط بها.` : undefined,
+      });
+      refresh();
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "تعذر حذف الدورة";
+      toast.error("تعذر حذف الدورة", { description: message });
+    },
   });
 
   const openCreate = () => {
@@ -113,11 +121,11 @@ function AdminCourses() {
     setOpen(true);
   };
 
-  const openEdit = (c: any) => {
+  const openEdit = (c: { id: string; title: string; category: string; instructor: string; description?: string | null; students?: number; status: "draft" | "published"; thumbnail_url?: string | null; attachments?: string[] }) => {
     setEditId(c.id);
     setForm({
       title: c.title, category: c.category, instructor: c.instructor,
-      description: c.description ?? "", students: c.students, status: c.status,
+      description: c.description ?? "", students: c.students ?? 0, status: c.status,
       thumbnailFile: undefined,
       attachments: c.attachments ?? [],
       attachmentFiles: [],
@@ -156,9 +164,9 @@ function AdminCourses() {
       } else createMut.mutate(payload);
 
       toast.dismiss("save-course");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.dismiss("save-course");
-      toast.error(error.message || "حدث خطأ أثناء حفظ الدورة");
+      toast.error(error instanceof Error ? error.message : "حدث خطأ أثناء حفظ الدورة");
     } finally {
       setSavingCourse(false);
     }
@@ -203,7 +211,7 @@ function AdminCourses() {
                 <div>
                   <Label>الحالة</Label>
                   <Select value={form.status}
-                    onValueChange={(v) => setForm({ ...form, status: v as any })}>
+                    onValueChange={(v) => setForm({ ...form, status: v as "draft" | "published" })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="draft">مسودة</SelectItem>
@@ -273,7 +281,7 @@ function AdminCourses() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(data ?? []).map((c: any) => (
+                {(data ?? []).map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.title}</TableCell>
                     <TableCell>{c.category}</TableCell>
@@ -310,7 +318,7 @@ function AdminCourses() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>حذف الدورة</AlertDialogTitle>
                               <AlertDialogDescription>
-                                هل أنت متأكد من حذف "{c.title}"؟
+                                هل أنت متأكد من حذف "{c.title}"؟ سيتم حذف الدروس والتسجيلات والسجلات المرتبطة بها نهائياً.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -318,6 +326,7 @@ function AdminCourses() {
                               <AlertDialogAction
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 onClick={() => delMut.mutate(c.id)}
+                                disabled={delMut.isPending}
                               >
                                 حذف
                               </AlertDialogAction>

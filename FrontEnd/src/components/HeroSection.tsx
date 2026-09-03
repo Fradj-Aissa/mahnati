@@ -3,6 +3,7 @@ import { Search, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import heroBg from "@/assets/hero-bg.jpg";
+import { SearchInput } from "@/components/SearchInput";
 
 export function HeroSection() {
   return (
@@ -46,7 +47,7 @@ export function HeroSection() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mx-auto mt-10 max-w-xl"
           >
-            <div className="flex items-center gap-2 rounded-2xl bg-primary-foreground/95 p-2 shadow-hero backdrop-blur-sm">
+            <div className="hidden flex items-center gap-2 rounded-2xl bg-primary-foreground/95 p-2 shadow-hero backdrop-blur-sm">
               <Search className="mr-3 h-5 w-5 shrink-0 text-muted-foreground" />
               <input
                 type="text"
@@ -58,6 +59,10 @@ export function HeroSection() {
               </Button>
             </div>
           </motion.div>
+
+          <div className="mx-auto mt-10 max-w-xl">
+            <SearchInput variant="hero" className="w-full text-right" />
+          </div>
 
           {/* CTA */}
           <motion.div

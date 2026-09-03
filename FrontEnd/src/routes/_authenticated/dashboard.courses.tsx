@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Play, Clock, BookOpen, Image as ImageIcon } from "lucide-react";
@@ -131,9 +131,11 @@ function CourseCard({ course, delay }: { course: EnrolledCourse; delay: number }
           </div>
           <Progress value={course.progress} />
         </div>
-        <Button className="mt-4 w-full gradient-accent border-0 text-primary-foreground">
-          <Play className="h-4 w-4" />
-          {course.status === "completed" ? "مراجعة" : course.status === "saved" ? "ابدأ الآن" : "أكمل التعلم"}
+        <Button asChild className="mt-4 w-full gradient-accent border-0 text-primary-foreground">
+          <Link to="/courses/$courseId" params={{ courseId: course.id }}>
+            <Play className="h-4 w-4" />
+            {course.status === "completed" ? "مراجعة" : course.status === "saved" ? "ابدأ الآن" : "أكمل التعلم"}
+          </Link>
         </Button>
       </div>
     </motion.div>

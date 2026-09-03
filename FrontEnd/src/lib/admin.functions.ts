@@ -14,6 +14,7 @@ const normalizeAttachments = (value: unknown): string[] => {
   if (Array.isArray(value)) return value.filter((file): file is string => typeof file === "string");
   return typeof value === "string" && value ? [value] : [];
 };
+const errorMessage = (error: unknown) => error instanceof Error ? error.message : "حدث خطأ غير متوقع";
 
 export const getAdminStats = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => {
   requireAdmin(context.role);
@@ -97,10 +98,78 @@ const courseResult = (record: CourseRecord): CourseResult => ({
   attachments: normalizeAttachments(record.attachments),
 });
 
+type PocketBaseCollection = {
+  id: string;
+  name: string;
+  fields?: Array<{ name: string; type: string; collectionId?: string }>;
+};
+
+type CourseRelation = {
+  collectionId: string;
+  fieldName: string;
+};
+
+/**
+ * Deletes records that reference a record before deleting that record itself.
+ *
+ * PocketBase only applies a relation field's `cascadeDelete` setting when it is
+ * enabled in the collection schema.  Keeping this in the admin mutation makes
+ * deletion reliable for existing deployments and for related collections added
+ * later (lessons, assessments, subscriptions, etc.).
+ */
+const deleteRecordWithDependents = async (
+  pb: Awaited<ReturnType<typeof admin>>,
+  collections: PocketBaseCollection[],
+  record: { collectionId: string; id: string },
+  activeRecords = new Set<string>(),
+): Promise<number> => {
+  const recordKey = `${record.collectionId}:${record.id}`;
+  if (activeRecords.has(recordKey)) {
+    throw new Error("تعذر حذف الدورة بسبب علاقة دائرية بين السجلات المرتبطة بها.");
+  }
+
+  activeRecords.add(recordKey);
+  try {
+    const dependents: CourseRelation[] = collections.flatMap((collection) =>
+      (collection.fields ?? [])
+        .filter((field) => field.type === "relation" && field.collectionId === record.collectionId)
+        .map((field) => ({ collectionId: collection.id, fieldName: field.name })),
+    );
+
+    let deletedCount = 0;
+    for (const dependent of dependents) {
+      // The relation-field name comes from the trusted PocketBase schema and
+      // the record id is JSON encoded so it cannot alter the filter expression.
+      const relatedRecords = await pb.collection(dependent.collectionId).getFullList({
+        filter: `${dependent.fieldName} = ${JSON.stringify(record.id)}`,
+        fields: "id",
+      });
+
+      for (const relatedRecord of relatedRecords) {
+        deletedCount += await deleteRecordWithDependents(
+          pb,
+          collections,
+          { collectionId: dependent.collectionId, id: relatedRecord.id },
+          activeRecords,
+        );
+      }
+    }
+
+    await pb.collection(record.collectionId).delete(record.id);
+    return deletedCount + 1;
+  } finally {
+    activeRecords.delete(recordKey);
+  }
+};
+
 export const listCourses = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => {
   requireAdmin(context.role);
-  const records = await (await admin()).collection("courses").getFullList({ sort: "-created" });
-  return (records as CourseRecord[]).map(courseResult);
+  const pb = await admin();
+  const records = await pb.collection("courses").getFullList({ sort: "-created" });
+  return (records as CourseRecord[]).map((record) => ({
+    ...courseResult(record),
+    thumbnail_url: record.thumbnail ? pb.files.getURL(record, record.thumbnail) : record.thumbnail_url ?? null,
+  }));
 });
 export const createCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator(formDataInput).handler(async ({ context, data }) => {
   requireAdmin(context.role); await (await admin()).collection("courses").create(data); return { ok: true };
@@ -117,7 +186,35 @@ export const updateCourse = createServerFn({ method: "POST" }).middleware([requi
   return { ok: true };
 });
 export const deleteCourse = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ id: recordId }).parse(input)).handler(async ({ context, data }) => {
-  requireAdmin(context.role); await (await admin()).collection("courses").delete(data.id); return { ok: true };
+  requireAdmin(context.role);
+  const pb = await admin();
+
+  try {
+    const [, collections] = await Promise.all([
+      pb.collection("courses").getOne(data.id, { fields: "id" }),
+      pb.collections.getFullList(),
+    ]);
+    const courseCollection = (collections as PocketBaseCollection[]).find(
+      (collection) => collection.name === "courses",
+    );
+    if (!courseCollection) {
+      throw new Error("لم يتم العثور على مجموعة الدورات في PocketBase.");
+    }
+
+    const deletedRecords = await deleteRecordWithDependents(
+      pb,
+      collections as PocketBaseCollection[],
+      // `RecordModel.collectionId` is not returned when the record query is
+      // limited to `fields: "id"`; use the explicit schema collection id.
+      { collectionId: courseCollection.id, id: data.id },
+    );
+
+    // Includes the course itself; expose only the number of removed dependents.
+    return { ok: true, deletedDependents: Math.max(0, deletedRecords - 1) };
+  } catch (error) {
+    console.error("Failed to delete course and its related records", error);
+    throw new Error("تعذر حذف الدورة وملحقاتها. تأكد من عدم وجود علاقات مطلوبة غير مهيأة للحذف المتسلسل ثم أعد المحاولة.");
+  }
 });
 
 const artisanStatus = z.enum(["pending", "approved", "rejected"]);

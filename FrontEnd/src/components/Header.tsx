@@ -27,6 +27,7 @@ export function Header() {
   const navLinks = [
     { to: "/" as const, label: "الرئيسية" },
     { to: "/courses" as const, label: "التخصصات" },
+    { to: "/about" as const, label: "تعرّف علينا" },
   ];
 
   return (
