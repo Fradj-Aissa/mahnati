@@ -1,0 +1,1530 @@
+[
+  {
+    "authAlert": {
+      "emailTemplate": {
+        "body": "<p>Hello,</p>\n<p>We noticed a login to your {APP_NAME} account from a new location:</p>\n<p><em>{ALERT_INFO}</em></p>\n<p><strong>If this wasn't you, you should immediately change your {APP_NAME} account password to revoke access from all other locations.</strong></p>\n<p>If this was you, you may disregard this email.</p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>",
+        "subject": "Login from a new location"
+      },
+      "enabled": true
+    },
+    "authRule": "",
+    "authToken": {
+      "duration": 432000
+    },
+    "confirmEmailChangeTemplate": {
+      "body": "<p>Hello,</p>\n<p>Click on the button below to confirm your new email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-email-change/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Confirm new email</a>\n</p>\n<p><i>If you didn't ask to change your email address, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>",
+      "subject": "Confirm your {APP_NAME} new email address"
+    },
+    "createRule": "",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "emailChangeToken": {
+      "duration": 1800
+    },
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cost": 0,
+        "help": "",
+        "hidden": true,
+        "id": "password901924565",
+        "max": 0,
+        "min": 8,
+        "name": "password",
+        "pattern": "",
+        "presentable": false,
+        "required": true,
+        "system": true,
+        "type": "password"
+      },
+      {
+        "autogeneratePattern": "[a-zA-Z0-9]{50}",
+        "help": "",
+        "hidden": true,
+        "id": "text2504183744",
+        "max": 60,
+        "min": 30,
+        "name": "tokenKey",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "exceptDomains": [],
+        "help": "",
+        "hidden": false,
+        "id": "email3885137012",
+        "name": "email",
+        "onlyDomains": [],
+        "presentable": false,
+        "required": true,
+        "system": true,
+        "type": "email"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "bool1547992806",
+        "name": "emailVisibility",
+        "presentable": false,
+        "required": false,
+        "system": true,
+        "type": "bool"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "bool256245529",
+        "name": "verified",
+        "presentable": false,
+        "required": false,
+        "system": true,
+        "type": "bool"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text1579384326",
+        "max": 255,
+        "min": 0,
+        "name": "name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "file376926767",
+        "maxSelect": 1,
+        "maxSize": 0,
+        "mimeTypes": [
+          "image/jpeg",
+          "image/png",
+          "image/svg+xml",
+          "image/gif",
+          "image/webp"
+        ],
+        "name": "avatar",
+        "presentable": false,
+        "protected": false,
+        "required": false,
+        "system": false,
+        "thumbs": [],
+        "type": "file"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "select1466534506",
+        "maxSelect": 0,
+        "name": "role",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": [
+          "student",
+          "artisan",
+          "admin"
+        ]
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_avatar_url",
+        "max": 2000,
+        "min": 0,
+        "name": "avatar_url",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_user_bio",
+        "max": 1000,
+        "min": 0,
+        "name": "bio",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      }
+    ],
+    "fileToken": {
+      "duration": 180
+    },
+    "id": "_pb_users_auth_",
+    "indexes": [
+      "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
+      "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+    ],
+    "listRule": "@request.auth.id != \"\"",
+    "manageRule": null,
+    "mfa": {
+      "duration": 600,
+      "enabled": false,
+      "rule": ""
+    },
+    "name": "users",
+    "oauth2": {
+      "enabled": false,
+      "mappedFields": {
+        "avatarURL": "avatar",
+        "id": "",
+        "name": "name",
+        "username": ""
+      }
+    },
+    "otp": {
+      "duration": 180,
+      "emailTemplate": {
+        "body": "<p>Hello,</p>\n<p>Your one-time password is: <strong>{OTP}</strong></p>\n<p><i>If you didn't ask for the one-time password, you can ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>",
+        "subject": "OTP for {APP_NAME}"
+      },
+      "enabled": false,
+      "length": 8
+    },
+    "passwordAuth": {
+      "enabled": true,
+      "identityFields": [
+        "email"
+      ]
+    },
+    "passwordResetToken": {
+      "duration": 1800
+    },
+    "resetPasswordTemplate": {
+      "body": "<p>Hello,</p>\n<p>Click on the button below to reset your password.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Reset password</a>\n</p>\n<p><i>If you didn't ask to reset your password, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>",
+      "subject": "Reset your {APP_NAME} password"
+    },
+    "system": false,
+    "type": "auth",
+    "updateRule": "id = @request.auth.id || @request.auth.role = \"admin\"",
+    "verificationTemplate": {
+      "body": "<p>Hello,</p>\n<p>Thank you for joining us at {APP_NAME}.</p>\n<p>Click on the button below to verify your email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-verification/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Verify</a>\n</p>\n<p><i>If you didn't recently register, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>",
+      "subject": "Verify your {APP_NAME} email"
+    },
+    "verificationToken": {
+      "duration": 86400
+    },
+    "viewRule": "@request.auth.id != \"\""
+  },
+  {
+    "createRule": "@request.auth.role = \"admin\"",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text724990059",
+        "max": 0,
+        "min": 0,
+        "name": "title",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text105650625",
+        "max": 0,
+        "min": 0,
+        "name": "category",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "convertURLs": false,
+        "help": "",
+        "hidden": false,
+        "id": "editor1843675174",
+        "maxSize": 0,
+        "name": "description",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "editor"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text838616029",
+        "max": 0,
+        "min": 0,
+        "name": "instructor",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text2758380978",
+        "max": 0,
+        "min": 0,
+        "name": "students",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "select2063623452",
+        "maxSelect": 0,
+        "name": "status",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "values": [
+          "draft",
+          "published"
+        ]
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "file3277268710",
+        "maxSelect": 0,
+        "maxSize": 0,
+        "mimeTypes": [
+          "image/jpeg",
+          "image/png",
+          "image/webp"
+        ],
+        "name": "thumbnail",
+        "presentable": false,
+        "protected": false,
+        "required": false,
+        "system": false,
+        "thumbs": [],
+        "type": "file"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "file1204091606",
+        "maxSelect": 0,
+        "maxSize": 0,
+        "mimeTypes": [],
+        "name": "attachments",
+        "presentable": false,
+        "protected": false,
+        "required": false,
+        "system": false,
+        "thumbs": [],
+        "type": "file"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_thumbnail_url",
+        "max": 0,
+        "min": 0,
+        "name": "thumbnail_url",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "id": "pbc_955655590",
+    "indexes": [],
+    "listRule": "status = \"published\" || @request.auth.role = \"admin\"",
+    "name": "courses",
+    "system": false,
+    "type": "base",
+    "updateRule": "@request.auth.role = \"admin\"",
+    "viewRule": "status = \"published\" || @request.auth.role = \"admin\""
+  },
+  {
+    "createRule": "@request.auth.role = \"admin\" || @request.auth.id != \"\"",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text1579384326",
+        "max": 0,
+        "min": 0,
+        "name": "name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text4099689092",
+        "max": 0,
+        "min": 0,
+        "name": "craft",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text3709889147",
+        "max": 0,
+        "min": 0,
+        "name": "bio",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "number3632866850",
+        "max": null,
+        "min": null,
+        "name": "rating",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "number1754788175",
+        "max": null,
+        "min": null,
+        "name": "sessions_count",
+        "onlyInt": false,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "select2063623452",
+        "maxSelect": 0,
+        "name": "status",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "values": [
+          "pending",
+          "approved",
+          "rejected"
+        ]
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "id": "pbc_1151759478",
+    "indexes": [],
+    "listRule": "status = \"approved\" || @request.auth.role = \"admin\"",
+    "name": "artisans",
+    "system": false,
+    "type": "base",
+    "updateRule": "@request.auth.role = \"admin\"",
+    "viewRule": "status = \"approved\" || @request.auth.role = \"admin\""
+  },
+  {
+    "createRule": "@request.auth.id != \"\"",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text2580175151",
+        "max": 0,
+        "min": 0,
+        "name": "artisan_name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text1627391454",
+        "max": 0,
+        "min": 0,
+        "name": "student_name",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text4099689092",
+        "max": 0,
+        "min": 0,
+        "name": "craft",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "date164390390",
+        "max": "",
+        "min": "",
+        "name": "scheduled_at",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "select2063623452",
+        "maxSelect": 0,
+        "name": "status",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "values": [
+          "upcoming",
+          "completed",
+          "cancelled"
+        ]
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "_pb_users_auth_",
+        "help": "",
+        "hidden": false,
+        "id": "relation_session_student",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "student",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_zoom_url",
+        "max": 1000,
+        "min": 0,
+        "name": "zoom_url",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "id": "pbc_3660498186",
+    "indexes": [],
+    "listRule": "@request.auth.id != \"\"",
+    "name": "sessions",
+    "system": false,
+    "type": "base",
+    "updateRule": "@request.auth.role = \"admin\" || student = @request.auth.id",
+    "viewRule": "@request.auth.id != \"\""
+  },
+  {
+    "createRule": "@request.auth.id != \"\" && user.id = @request.auth.id",
+    "deleteRule": "user.id = @request.auth.id || @request.auth.role = \"admin\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": false,
+        "collectionId": "_pb_users_auth_",
+        "help": "",
+        "hidden": false,
+        "id": "relation_user",
+        "maxSelect": 1,
+        "minSelect": 1,
+        "name": "user",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_955655590",
+        "help": "",
+        "hidden": false,
+        "id": "relation_course",
+        "maxSelect": 1,
+        "minSelect": 1,
+        "name": "course",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "number_progress",
+        "max": 100,
+        "min": 0,
+        "name": "progress",
+        "onlyInt": true,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "select_status",
+        "maxSelect": 1,
+        "name": "status",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": [
+          "in_progress",
+          "completed",
+          "saved"
+        ]
+      },
+      {
+        "hidden": false,
+        "id": "autodate_created",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate_updated",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "id": "pbc_1009377862",
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_enrollments_user_course ON enrollments (user, course)"
+    ],
+    "listRule": "user.id = @request.auth.id || @request.auth.role = \"admin\"",
+    "name": "enrollments",
+    "system": false,
+    "type": "base",
+    "updateRule": "user.id = @request.auth.id || @request.auth.role = \"admin\"",
+    "viewRule": "user.id = @request.auth.id || @request.auth.role = \"admin\""
+  },
+  {
+    "createRule": "@request.auth.id != \"\" && user = @request.auth.id",
+    "deleteRule": "user = @request.auth.id || @request.auth.role = \"admin\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "_pb_users_auth_",
+        "help": "",
+        "hidden": false,
+        "id": "comment_user",
+        "maxSelect": 1,
+        "minSelect": 1,
+        "name": "user",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "comment_target_type",
+        "maxSelect": 1,
+        "name": "target_type",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": [
+          "course",
+          "artisan"
+        ]
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "comment_target_id",
+        "max": 15,
+        "min": 0,
+        "name": "target_id",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "comment_content",
+        "max": 1000,
+        "min": 0,
+        "name": "content",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "comment_rating",
+        "max": 5,
+        "min": 1,
+        "name": "rating",
+        "onlyInt": true,
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "comment_created",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "comment_updated",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "id": "pbc_533777971",
+    "indexes": [],
+    "listRule": "",
+    "name": "comments",
+    "system": false,
+    "type": "base",
+    "updateRule": "user = @request.auth.id || @request.auth.role = \"admin\"",
+    "viewRule": ""
+  },
+  {
+    "createRule": "@request.auth.id != \"\" && user = @request.auth.id",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_533777971",
+        "help": "",
+        "hidden": false,
+        "id": "report_comment",
+        "maxSelect": 1,
+        "minSelect": 1,
+        "name": "comment",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "_pb_users_auth_",
+        "help": "",
+        "hidden": false,
+        "id": "report_user",
+        "maxSelect": 1,
+        "minSelect": 1,
+        "name": "user",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "report_reason",
+        "maxSelect": 1,
+        "name": "reason",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": [
+          "inappropriate",
+          "spam",
+          "hate",
+          "other"
+        ]
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "report_details",
+        "max": 500,
+        "min": 0,
+        "name": "details",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "report_created",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "id": "pbc_1615648943",
+    "indexes": [
+      "CREATE UNIQUE INDEX idx_reports_user_comment ON reports (user, comment)"
+    ],
+    "listRule": "@request.auth.role = \"admin\"",
+    "name": "reports",
+    "system": false,
+    "type": "base",
+    "updateRule": "@request.auth.role = \"admin\"",
+    "viewRule": "@request.auth.role = \"admin\""
+  },
+  {
+    "id": "pbc_1289456321",
+    "name": "lessons",
+    "type": "base",
+    "system": false,
+    "listRule": "course.status = \"published\" || @request.auth.role = \"admin\"",
+    "viewRule": "course.status = \"published\" || @request.auth.role = \"admin\"",
+    "createRule": "@request.auth.role = \"admin\"",
+    "updateRule": "@request.auth.role = \"admin\"",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "pbc_955655590",
+        "help": "",
+        "hidden": false,
+        "id": "relation_lesson_course",
+        "maxSelect": 1,
+        "minSelect": 1,
+        "name": "course",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_lesson_title",
+        "max": 200,
+        "min": 1,
+        "name": "title",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "select_lesson_type",
+        "maxSelect": 1,
+        "name": "type",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": [
+          "video",
+          "pdf"
+        ]
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_lesson_url",
+        "max": 2000,
+        "min": 1,
+        "name": "content_url",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_lesson_duration",
+        "max": 50,
+        "min": 0,
+        "name": "duration",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "number_lesson_order",
+        "max": null,
+        "min": 0,
+        "name": "order",
+        "onlyInt": true,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "bool_lesson_completed",
+        "name": "completed",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "indexes": [
+      "CREATE INDEX `idx_lessons_course` ON `lessons` (`course`)"
+    ]
+  },
+  {
+    "id": "pbc_2485619203",
+    "name": "community_activities",
+    "type": "base",
+    "system": false,
+    "listRule": "@request.auth.id != \"\"",
+    "viewRule": "@request.auth.id != \"\"",
+    "createRule": "@request.auth.id != \"\" && user = @request.auth.id",
+    "updateRule": "user = @request.auth.id || @request.auth.role = \"admin\"",
+    "deleteRule": "user = @request.auth.id || @request.auth.role = \"admin\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "_pb_users_auth_",
+        "help": "",
+        "hidden": false,
+        "id": "relation_comm_user",
+        "maxSelect": 1,
+        "minSelect": 1,
+        "name": "user",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "select_comm_type",
+        "maxSelect": 1,
+        "name": "type",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": [
+          "post",
+          "comment",
+          "question"
+        ]
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_comm_title",
+        "max": 255,
+        "min": 1,
+        "name": "title",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_comm_excerpt",
+        "max": 2000,
+        "min": 1,
+        "name": "excerpt",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_comm_room",
+        "max": 100,
+        "min": 1,
+        "name": "room",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "number_comm_likes",
+        "max": null,
+        "min": 0,
+        "name": "likes",
+        "onlyInt": true,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "number_comm_replies",
+        "max": null,
+        "min": 0,
+        "name": "replies",
+        "onlyInt": true,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "indexes": [
+      "CREATE INDEX `idx_comm_user` ON `community_activities` (`user`)"
+    ]
+  },
+  {
+    "id": "pbc_3571928402",
+    "name": "achievements",
+    "type": "base",
+    "system": false,
+    "listRule": "user = @request.auth.id || @request.auth.role = \"admin\"",
+    "viewRule": "user = @request.auth.id || @request.auth.role = \"admin\"",
+    "createRule": "@request.auth.role = \"admin\"",
+    "updateRule": "@request.auth.role = \"admin\"",
+    "deleteRule": "@request.auth.role = \"admin\"",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "_pb_users_auth_",
+        "help": "",
+        "hidden": false,
+        "id": "relation_achiev_user",
+        "maxSelect": 1,
+        "minSelect": 1,
+        "name": "user",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_achiev_code",
+        "max": 50,
+        "min": 1,
+        "name": "achievement_id",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_achiev_title",
+        "max": 150,
+        "min": 1,
+        "name": "title",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_achiev_desc",
+        "max": 500,
+        "min": 0,
+        "name": "description",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "select_achiev_icon",
+        "maxSelect": 1,
+        "name": "icon",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": [
+          "trophy",
+          "flame",
+          "star",
+          "users",
+          "graduation",
+          "zap"
+        ]
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "bool_achiev_earned",
+        "name": "earned",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "bool"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "date_achiev_earned_at",
+        "max": "",
+        "min": "",
+        "name": "earned_at",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_achiev_color",
+        "max": 50,
+        "min": 0,
+        "name": "color",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX `idx_achiev_user_code` ON `achievements` (`user`, `achievement_id`)"
+    ]
+  }
+]
