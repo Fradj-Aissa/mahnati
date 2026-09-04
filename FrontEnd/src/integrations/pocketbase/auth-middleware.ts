@@ -1,6 +1,7 @@
 import { createMiddleware } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import PocketBase from "pocketbase";
+import { cleanPocketBaseUrl } from "./url";
 
 export const requirePocketBaseAuth = createMiddleware({ type: "function" }).server(
   async ({ next }) => {
@@ -10,7 +11,8 @@ export const requirePocketBaseAuth = createMiddleware({ type: "function" }).serv
 
     if (!token) throw new Response("Unauthorized", { status: 401 });
 
-    const pb = new PocketBase(process.env.POCKETBASE_URL || "http://127.0.0.1:8090");
+    const rawUrl = process.env.POCKETBASE_URL || process.env.VITE_POCKETBASE_URL;
+    const pb = new PocketBase(cleanPocketBaseUrl(rawUrl));
     pb.authStore.save(token, null);
 
     try {

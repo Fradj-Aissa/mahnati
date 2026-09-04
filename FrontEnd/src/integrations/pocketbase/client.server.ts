@@ -1,11 +1,13 @@
 import PocketBase from "pocketbase";
+import { cleanPocketBaseUrl } from "./url";
 
 let adminClient: PocketBase | undefined;
 
 export async function getPbAdmin() {
   if (adminClient?.authStore.isValid) return adminClient;
 
-  const url = process.env.POCKETBASE_URL || "http://127.0.0.1:8090";
+  const rawUrl = process.env.POCKETBASE_URL || process.env.VITE_POCKETBASE_URL;
+  const url = cleanPocketBaseUrl(rawUrl);
   const email = process.env.POCKETBASE_SUPERUSER_EMAIL;
   const password = process.env.POCKETBASE_SUPERUSER_PASSWORD;
 
