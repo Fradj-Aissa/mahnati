@@ -1,0 +1,10 @@
+# PocketBase local database and storage (keep migrations and schema only)
+backend-pocketbase/pb_data/
+backend-pocketbase/pocketbase.exe
+*.exe
+
+# Node
+node_modules/
+dist/
+.env
+.env.local

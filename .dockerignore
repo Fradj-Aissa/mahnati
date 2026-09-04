@@ -1,0 +1,6 @@
+.git
+.gitignore
+FrontEnd
+**/node_modules
+**/pb_data
+**/*.exe
