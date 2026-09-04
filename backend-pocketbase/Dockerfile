@@ -6,7 +6,8 @@ ARG PB_VERSION=0.40.2
 ADD https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip /tmp/pb.zip
 RUN unzip /tmp/pb.zip -d /pb/ && rm /tmp/pb.zip
 
-# نسخ مجلد الترحيلات تلقائياً داخل الحاوية لضمان تطبيق الهيكلة والتغييرات عند الإقلاع على Render
+# نسخ مخطط البيانات والترحيلات تلقائياً داخل الحاوية
+COPY ./pb_schema.json /pb/pb_schema.json
 COPY ./pb_migrations /pb/pb_migrations
 
 EXPOSE 8080
