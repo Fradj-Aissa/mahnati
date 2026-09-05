@@ -11,6 +11,8 @@ export interface DBCourse {
   status: "draft" | "published";
   created_at: string;
   attachments: string[];
+  averageRating: number;
+  ratingsCount: number;
 }
 
 export interface HomepageCategory {
@@ -74,22 +76,65 @@ function normalizeAttachments(value: unknown): string[] {
   return typeof value === "string" && value ? [value] : [];
 }
 
+async function fetchRatingsMap(courseIds: string[]): Promise<Map<string, { avg: number; count: number }>> {
+  const map = new Map<string, { avg: number; count: number }>();
+  if (courseIds.length === 0) return map;
+
+  // Initialize all courses with zero ratings
+  for (const id of courseIds) map.set(id, { avg: 0, count: 0 });
+
+  try {
+    const filter = courseIds.map((id) => `target_id = "${id}"`).join(" || ");
+    const ratingRecords = await pb.collection("comments").getFullList({
+      filter: `target_type = "course" && (${filter})`,
+      fields: "target_id,rating",
+    });
+
+    // Accumulate sums and counts per course
+    const sums = new Map<string, { sum: number; count: number }>();
+    for (const rec of ratingRecords) {
+      const key = String(rec.target_id);
+      const cur = sums.get(key) ?? { sum: 0, count: 0 };
+      cur.sum += Number(rec.rating ?? 0);
+      cur.count += 1;
+      sums.set(key, cur);
+    }
+
+    for (const [id, { sum, count }] of sums) {
+      map.set(id, { avg: count > 0 ? sum / count : 0, count });
+    }
+  } catch {
+    // Silently fall back to zero ratings if collection doesn't exist yet
+  }
+
+  return map;
+}
+
 async function fetchPublishedCourses(): Promise<DBCourse[]> {
   const records = await pb.collection("courses").getFullList({
     filter: 'status = "published"',
     sort: "-created",
   });
-  return records.map((record) => ({
-    id: record.id,
-    title: record.title,
-    category: record.category,
-    description: record.description ?? null,
-    instructor: record.instructor,
-    students: Number(record.students ?? 0),
-    status: record.status,
-    created_at: record.created,
-    attachments: normalizeAttachments(record.attachments).map((file) => pb.files.getURL(record, file)),
-  } as DBCourse));
+
+  const courseIds = records.map((r) => r.id);
+  const ratingsMap = await fetchRatingsMap(courseIds);
+
+  return records.map((record) => {
+    const ratings = ratingsMap.get(record.id) ?? { avg: 0, count: 0 };
+    return {
+      id: record.id,
+      title: record.title,
+      category: record.category,
+      description: record.description ?? null,
+      instructor: record.instructor,
+      students: Number(record.students ?? 0),
+      status: record.status,
+      created_at: record.created,
+      attachments: normalizeAttachments(record.attachments).map((file) => pb.files.getURL(record, file)),
+      averageRating: ratings.avg,
+      ratingsCount: ratings.count,
+    } as DBCourse;
+  });
 }
 
 export function usePublishedCourses() {
@@ -165,6 +210,8 @@ export function useCourse(courseId: string) {
     queryFn: async (): Promise<DBCourse | null> => {
       try {
         const record = await pb.collection("courses").getOne(courseId);
+        const ratingsMap = await fetchRatingsMap([courseId]);
+        const ratings = ratingsMap.get(courseId) ?? { avg: 0, count: 0 };
         return {
           id: record.id,
           title: record.title,
@@ -175,6 +222,8 @@ export function useCourse(courseId: string) {
           status: record.status,
           created_at: record.created,
           attachments: normalizeAttachments(record.attachments).map((file) => pb.files.getURL(record, file)),
+          averageRating: ratings.avg,
+          ratingsCount: ratings.count,
         } as DBCourse;
       } catch (error) {
         if (error && typeof error === "object" && "status" in error && error.status === 404) return null;

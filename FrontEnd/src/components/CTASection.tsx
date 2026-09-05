@@ -22,7 +22,7 @@ export function CTASection() {
               ابدأ رحلتك المهنية اليوم
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-primary-foreground/80">
-              انضم لأكثر من 2500 طالب يبنون مستقبلهم المهني مع منصة مهنتي
+              انضم لكثير من  طلب يبنون مستقبلهم المهني مع منصة مهنتي
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <Button asChild size="lg" className="gradient-accent border-0 text-primary-foreground">

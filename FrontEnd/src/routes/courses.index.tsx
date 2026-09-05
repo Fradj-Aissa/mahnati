@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
-import { Users, Search, Filter, BookOpen } from "lucide-react";
+import { Users, Search, Filter, BookOpen, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePublishedCourses } from "@/hooks/use-courses";
@@ -117,6 +117,13 @@ function CoursesPage() {
                   </p>
                   <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {course.students} طالب</span>
+                    {course.ratingsCount > 0 && (
+                      <span className="flex items-center gap-1 text-warning font-medium">
+                        <Star className="h-3.5 w-3.5 fill-warning text-warning" />
+                        {course.averageRating.toFixed(1)}
+                        <span className="text-muted-foreground font-normal">({course.ratingsCount})</span>
+                      </span>
+                    )}
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
                     <span className="text-sm text-muted-foreground">{course.instructor}</span>

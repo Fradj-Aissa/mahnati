@@ -1,14 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Play, Clock, BookOpen, Image as ImageIcon } from "lucide-react";
+import { Search, Play, Clock, BookOpen, Image as ImageIcon, CheckCircle2, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useEnrolledCourses } from "@/hooks/use-dashboard";
+import { useEnrolledCourses, useCompleteCourse } from "@/hooks/use-dashboard";
 import { pb } from "@/integrations/pocketbase/client";
+import { toast } from "sonner";
 import type { EnrolledCourse } from "@/lib/dashboard-data";
 
 const fallbackCourseImage = "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=900&q=80";
@@ -89,11 +90,27 @@ function MyCoursesPage() {
 }
 
 function CourseCard({ course, delay }: { course: EnrolledCourse; delay: number }) {
+  const completeCourse = useCompleteCourse();
+
+  const handleComplete = async () => {
+    try {
+      await completeCourse.mutateAsync(course.id);
+      toast.success("مبروك! أتممتها بنجاح ماشاء الله عليك وبارك الله فيك 🎓", {
+        description: `لقد أكملت دورة "${course.title}" بنجاح!`,
+        duration: 5000,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذّر تحديث حالة الدورة");
+    }
+  };
+
   const statusBadge = {
     in_progress: { label: "قيد التقدم", cls: "bg-primary/10 text-primary border-primary/20" },
     completed: { label: "مكتملة", cls: "bg-success/10 text-success border-success/20" },
     saved: { label: "محفوظة", cls: "bg-muted text-muted-foreground" },
   }[course.status];
+
+  const isCompleting = completeCourse.isPending;
 
   return (
     <motion.div
@@ -131,12 +148,43 @@ function CourseCard({ course, delay }: { course: EnrolledCourse; delay: number }
           </div>
           <Progress value={course.progress} />
         </div>
-        <Button asChild className="mt-4 w-full gradient-accent border-0 text-primary-foreground">
-          <Link to="/courses/$courseId" params={{ courseId: course.id }}>
-            <Play className="h-4 w-4" />
-            {course.status === "completed" ? "مراجعة" : course.status === "saved" ? "ابدأ الآن" : "أكمل التعلم"}
-          </Link>
-        </Button>
+
+        <div className="mt-4 flex flex-col gap-2">
+          <Button asChild className="w-full gradient-accent border-0 text-primary-foreground">
+            <Link to="/courses/$courseId" params={{ courseId: course.id }}>
+              <Play className="h-4 w-4" />
+              {course.status === "completed" ? "مراجعة" : course.status === "saved" ? "ابدأ الآن" : "أكمل التعلم"}
+            </Link>
+          </Button>
+
+          {/* Complete course button — only for in_progress */}
+          {course.status === "in_progress" && (
+            <Button
+              id={`complete-course-${course.id}`}
+              variant="outline"
+              className="w-full border-success/30 text-success hover:bg-success/10 hover:text-success"
+              onClick={handleComplete}
+              disabled={isCompleting}
+            >
+              {isCompleting ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> جارِ التحديث...</>
+              ) : (
+                <><CheckCircle2 className="h-4 w-4" /> تمييز كمكتملة</>
+              )}
+            </Button>
+          )}
+
+          {/* Completed badge */}
+          {course.status === "completed" && (
+            <div
+              className="flex w-full items-center justify-center gap-2 rounded-md border border-success/30 bg-success/10 px-4 py-2 text-sm font-semibold text-success"
+              aria-label="الدورة مكتملة"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              مكتملة ✓
+            </div>
+          )}
+        </div>
       </div>
     </motion.div>
   );

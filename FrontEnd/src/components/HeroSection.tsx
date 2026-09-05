@@ -26,7 +26,7 @@ export function HeroSection() {
             transition={{ duration: 0.6 }}
           >
             <span className="mb-4 inline-block rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-1.5 text-sm font-medium text-primary-foreground">
-              🎓 أكثر من 2500 طالب يتعلمون معنا
+              🎓 رحلتك نحو الاحتراف تبدأ من هنا
             </span>
 
             <h1 className="mt-6 text-4xl font-bold leading-tight tracking-tight text-primary-foreground sm:text-5xl lg:text-6xl">

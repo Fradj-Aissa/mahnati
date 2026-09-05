@@ -74,6 +74,29 @@ export function useEnrolledCourses() {
   });
 }
 
+export function useCompleteCourse() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (courseId: string) => {
+      if (!user?.id) throw new Error("يجب تسجيل الدخول أولاً");
+      // Find the enrollment record first
+      const enrollment = await pb.collection("enrollments").getFirstListItem(
+        `user = "${user.id}" && course = "${courseId}"`,
+      ) as EnrollmentRecord;
+      // Patch status and progress
+      return await pb.collection("enrollments").update(enrollment.id, {
+        status: "completed",
+        progress: 100,
+      });
+    },
+    onSuccess: (_, courseId) => {
+      queryClient.invalidateQueries({ queryKey: ["enrollment", user?.id, courseId] });
+      queryClient.invalidateQueries({ queryKey: ["enrollments", user?.id] });
+    },
+  });
+}
+
 export function useMySessions() {
   const { user } = useAuth();
   return useQuery({
