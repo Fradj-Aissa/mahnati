@@ -23,5 +23,5 @@ RUN mkdir -p /pb/pb_migrations /pb/pb_data && \
 
 EXPOSE 8080
 
-# تشغيل السيرفر مع الترحيل التلقائي
-CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:8080", "--dir=/pb/pb_data", "--migrationsDir=/pb/pb_migrations"]
+# إنشاء حساب الأدمن تلقائياً عند التشغيل ثم تشغيل السيرفر
+CMD ["/bin/sh", "-c", "/pb/pocketbase superuser upsert fraais1920@gmail.com fraais1920 --dir=/pb/pb_data && /pb/pocketbase serve --http=0.0.0.0:8080 --dir=/pb/pb_data --migrationsDir=/pb/pb_migrations"]
