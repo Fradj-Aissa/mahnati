@@ -1,10 +1,16 @@
 FROM alpine:latest
-RUN apk add --no-cache unzip ca-certificates
 
-# تحميل النسخة الرسمية المتوافقة من موقع PocketBase
+# تثبيت الحزم الأساسية ودعم المنطقة الزمنية
+RUN apk add --no-cache unzip ca-certificates tzdata
+
+# تحديد إصدار PocketBase
 ARG PB_VERSION=0.40.2
+
+# تحميل وتفكيك ملفات PocketBase وإعطاء صلاحيات التشغيل
 ADD https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip /tmp/pb.zip
-RUN unzip /tmp/pb.zip -d /pb/ && rm /tmp/pb.zip
+RUN unzip /tmp/pb.zip -d /pb/ && \
+    chmod +x /pb/pocketbase && \
+    rm /tmp/pb.zip
 
 # نسخ المخطط والترحيلات بمرونة (سواء تم البناء من جذر المشروع أو من مجلد backend-pocketbase)
 COPY . /tmp/context/
@@ -21,6 +27,10 @@ RUN mkdir -p /pb/pb_migrations /pb/pb_data && \
     fi && \
     rm -rf /tmp/context
 
+# تحديد مجلد التخزين الدائم ليتعرف عليه Zeabur تلقائياً
+VOLUME /pb/pb_data
+
+# فتح المنفذ
 EXPOSE 8080
 
 # إنشاء حساب الأدمن تلقائياً عند التشغيل ثم تشغيل السيرفر
