@@ -16,7 +16,7 @@ export const Route = createFileRoute("/login")({
 });
 
 const loginSchema = z.object({
-  identity: z.string().trim().min(3, { message: "أدخل البريد الإلكتروني أو اسم المستخدم" }).max(255),
+  identity: z.string().trim().min(3, { message: "أدخل البريد الإلكتروني أو رقم الهاتف" }).max(255),
   password: z.string().min(6, { message: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }).max(72),
 });
 
@@ -81,7 +81,7 @@ function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="identity">البريد الإلكتروني أو اسم المستخدم</Label>
+            <Label htmlFor="identity">البريد الإلكتروني أو رقم الهاتف</Label>
             <Input
               id="identity"
               type="text"
@@ -89,7 +89,7 @@ function LoginPage() {
               autoComplete="username"
               value={identity}
               onChange={(e) => setIdentity(e.target.value)}
-              placeholder="you@example.com أو username"
+              placeholder="you@example.com أو +966 50 000 0000"
               required
             />
           </div>
