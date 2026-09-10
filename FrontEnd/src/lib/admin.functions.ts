@@ -57,6 +57,43 @@ export const listUsers = createServerFn({ method: "GET" }).middleware([requirePo
   }));
 });
 
+const enrollmentStatusSchema = z.enum(["in_progress", "completed", "saved"]);
+
+export const listEnrolledStudents = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => {
+  requireAdmin(context.role);
+  const pb = await admin();
+  const records = await pb.collection("enrollments").getFullList({ expand: "user,course", sort: "-updated" });
+  return records.map((record) => {
+    const student = record.expand?.user as { id: string; name?: string; email?: string; phone?: string; avatar?: string; avatar_url?: string; date_of_birth?: string } | undefined;
+    const course = record.expand?.course as { id: string; title?: string } | undefined;
+    return {
+      id: record.id,
+      studentId: String(record.user),
+      studentName: student?.name || student?.email || "متدرب بدون اسم",
+      email: student?.email || "",
+      phone: student?.phone || "",
+      dateOfBirth: student?.date_of_birth || "",
+      avatarUrl: student?.avatar ? pb.files.getURL(student, student.avatar) : student?.avatar_url || null,
+      courseId: String(record.course),
+      courseTitle: course?.title || "دورة غير معروفة",
+      status: enrollmentStatusSchema.parse(record.status),
+      progress: Number(record.progress || 0),
+      updated: record.updated,
+    };
+  });
+});
+
+export const updateEnrollmentStatus = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).validator(
+  z.object({ enrollmentId: recordId, status: enrollmentStatusSchema }),
+).handler(async ({ context, data }) => {
+  requireAdmin(context.role);
+  await (await admin()).collection("enrollments").update(data.enrollmentId, {
+    status: data.status,
+    ...(data.status === "completed" ? { progress: 100 } : {}),
+  });
+  return { ok: true };
+});
+
 export const setUserRole = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ userId: recordId, role: roleSchema }).parse(input)).handler(async ({ context, data }) => {
   requireAdmin(context.role);
   await (await admin()).collection("users").update(data.userId, { role: data.role });

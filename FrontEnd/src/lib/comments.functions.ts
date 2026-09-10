@@ -21,8 +21,9 @@ export const getComments = createServerFn({ method: "GET" }).validator(targetSch
     sort: "-created",
   });
   return records.map((record) => {
-    const user = record.expand?.user as { id?: string; name?: string; email?: string; avatar_url?: string } | undefined;
-    return { id: record.id, userId: String(record.user), userName: user?.name || user?.email || "مستخدم مهنتي", avatarUrl: user?.avatar_url ?? null, content: String(record.content), rating: Number(record.rating), created: record.created };
+    const user = record.expand?.user as { id?: string; name?: string; email?: string; avatar?: string; avatar_url?: string } | undefined;
+    const avatarUrl = user?.avatar ? pb.files.getURL(user as { id: string }, user.avatar) : user?.avatar_url ?? null;
+    return { id: record.id, userId: String(record.user), userName: user?.name || user?.email || "مستخدم مهنتي", avatarUrl, content: String(record.content), rating: Number(record.rating), created: record.created };
   });
 });
 

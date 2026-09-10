@@ -76,6 +76,16 @@ export function DashboardSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/dashboard/students")} tooltip="المتدربون">
+                    <Link to="/dashboard/students" className="flex items-center gap-3">
+                      <Users className="h-4 w-4" />
+                      {!collapsed && <span>المتدربون</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

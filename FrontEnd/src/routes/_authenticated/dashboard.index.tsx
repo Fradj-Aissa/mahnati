@@ -23,6 +23,7 @@ function DashboardOverview() {
   const { data: sessions = [] } = useMySessions();
   const fullName = user?.name || "مستخدم مهنتي";
   const email = user?.email || "";
+  const avatarUrl = user?.avatar ? pb.files.getURL(user, user.avatar) : user?.avatar_url;
   const continueEnrollment = enrollments.find((item) => item.status === "in_progress");
   const continueRecord = continueEnrollment?.expand?.course as {
     id: string;
@@ -53,7 +54,7 @@ function DashboardOverview() {
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 border-2 border-white/30 sm:h-20 sm:w-20">
-              <AvatarImage src={user?.avatar_url} />
+              <AvatarImage src={avatarUrl} />
               <AvatarFallback className="bg-white/20 text-xl text-white">{initials}</AvatarFallback>
             </Avatar>
             <div>
@@ -70,6 +71,28 @@ function DashboardOverview() {
           </Button>
         </div>
       </motion.div>
+
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="rounded-2xl border border-border bg-card p-5 shadow-card"
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <Avatar className="h-20 w-20 border-2 border-primary/20">
+            <AvatarImage src={avatarUrl} />
+            <AvatarFallback className="bg-primary/10 text-lg font-bold text-primary">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-lg font-bold text-foreground">ملخص الحساب</h3>
+            <div className="mt-2 grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
+              <p><span className="font-medium text-foreground">الاسم:</span> {fullName}</p>
+              <p><span className="font-medium text-foreground">التواصل:</span> {user?.contact_method === "phone" ? user.phone || "غير مضاف" : email || "غير مضاف"}</p>
+              <p><span className="font-medium text-foreground">تاريخ الميلاد:</span> {user?.date_of_birth ? new Date(user.date_of_birth).toLocaleDateString("ar") : "غير مضاف"}</p>
+            </div>
+          </div>
+        </div>
+      </motion.section>
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

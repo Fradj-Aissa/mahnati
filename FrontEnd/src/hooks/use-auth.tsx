@@ -5,7 +5,11 @@ import { pb } from "@/integrations/pocketbase/client";
 type PocketBaseUser = RecordModel & {
   email: string;
   name?: string;
+  avatar?: string;
   avatar_url?: string;
+  phone?: string;
+  date_of_birth?: string;
+  contact_method?: "email" | "phone";
   role?: "student" | "artisan" | "admin";
 };
 

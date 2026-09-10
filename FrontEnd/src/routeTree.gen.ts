@@ -29,6 +29,7 @@ import { Route as AuthenticatedDashboardCommunityRouteImport } from './routes/_a
 import { Route as AuthenticatedDashboardCoursesRouteImport } from './routes/_authenticated/dashboard.courses'
 import { Route as AuthenticatedDashboardSessionsRouteImport } from './routes/_authenticated/dashboard.sessions'
 import { Route as AuthenticatedDashboardSettingsRouteImport } from './routes/_authenticated/dashboard.settings'
+import { Route as AuthenticatedDashboardStudentsRouteImport } from './routes/_authenticated/dashboard.students'
 import { Route as LearnCourseIdLessonIdRouteImport } from './routes/learn.$courseId.$lessonId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -139,6 +140,12 @@ const AuthenticatedDashboardSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardStudentsRoute =
+  AuthenticatedDashboardStudentsRouteImport.update({
+    id: '/students',
+    path: '/students',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const LearnCourseIdLessonIdRoute = LearnCourseIdLessonIdRouteImport.update({
   id: '/learn/$courseId/$lessonId',
   path: '/learn/$courseId/$lessonId',
@@ -163,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/courses': typeof AuthenticatedDashboardCoursesRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/dashboard/students': typeof AuthenticatedDashboardStudentsRoute
   '/learn/$courseId/$lessonId': typeof LearnCourseIdLessonIdRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -183,6 +191,7 @@ export interface FileRoutesByTo {
   '/dashboard/courses': typeof AuthenticatedDashboardCoursesRoute
   '/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/dashboard/students': typeof AuthenticatedDashboardStudentsRoute
   '/learn/$courseId/$lessonId': typeof LearnCourseIdLessonIdRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
@@ -207,6 +216,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/courses': typeof AuthenticatedDashboardCoursesRoute
   '/_authenticated/dashboard/sessions': typeof AuthenticatedDashboardSessionsRoute
   '/_authenticated/dashboard/settings': typeof AuthenticatedDashboardSettingsRoute
+  '/_authenticated/dashboard/students': typeof AuthenticatedDashboardStudentsRoute
   '/learn/$courseId/$lessonId': typeof LearnCourseIdLessonIdRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/dashboard/courses'
     | '/dashboard/sessions'
     | '/dashboard/settings'
+    | '/dashboard/students'
     | '/learn/$courseId/$lessonId'
     | '/admin/'
     | '/dashboard/'
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/dashboard/courses'
     | '/dashboard/sessions'
     | '/dashboard/settings'
+    | '/dashboard/students'
     | '/learn/$courseId/$lessonId'
     | '/admin'
     | '/dashboard'
@@ -274,6 +286,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/courses'
     | '/_authenticated/dashboard/sessions'
     | '/_authenticated/dashboard/settings'
+    | '/_authenticated/dashboard/students'
     | '/learn/$courseId/$lessonId'
     | '/_authenticated/admin/'
     | '/_authenticated/dashboard/'
@@ -432,6 +445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSettingsRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/students': {
+      id: '/_authenticated/dashboard/students'
+      path: '/students'
+      fullPath: '/dashboard/students'
+      preLoaderRoute: typeof AuthenticatedDashboardStudentsRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/learn/$courseId/$lessonId': {
       id: '/learn/$courseId/$lessonId'
       path: '/learn/$courseId/$lessonId'
@@ -467,6 +487,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardCoursesRoute: typeof AuthenticatedDashboardCoursesRoute
   AuthenticatedDashboardSessionsRoute: typeof AuthenticatedDashboardSessionsRoute
   AuthenticatedDashboardSettingsRoute: typeof AuthenticatedDashboardSettingsRoute
+  AuthenticatedDashboardStudentsRoute: typeof AuthenticatedDashboardStudentsRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
 }
 
@@ -478,6 +499,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardCoursesRoute: AuthenticatedDashboardCoursesRoute,
     AuthenticatedDashboardSessionsRoute: AuthenticatedDashboardSessionsRoute,
     AuthenticatedDashboardSettingsRoute: AuthenticatedDashboardSettingsRoute,
+    AuthenticatedDashboardStudentsRoute: AuthenticatedDashboardStudentsRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   }
 
