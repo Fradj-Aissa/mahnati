@@ -16,14 +16,14 @@ export const Route = createFileRoute("/login")({
 });
 
 const loginSchema = z.object({
-  email: z.string().trim().email({ message: "بريد إلكتروني غير صالح" }).max(255),
+  identity: z.string().trim().min(3, { message: "أدخل البريد الإلكتروني أو اسم المستخدم" }).max(255),
   password: z.string().min(6, { message: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }).max(72),
 });
 
 function LoginPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [email, setEmail] = useState("");
+  const [identity, setIdentity] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -33,7 +33,7 @@ function LoginPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const parsed = loginSchema.safeParse({ email, password });
+    const parsed = loginSchema.safeParse({ identity, password });
     if (!parsed.success) {
       toast.error("خطأ في البيانات", { description: parsed.error.issues[0].message });
       return;
@@ -42,7 +42,7 @@ function LoginPage() {
     setSubmitting(true);
     let error: unknown;
     try {
-      await pb.collection("users").authWithPassword(parsed.data.email, parsed.data.password);
+      await pb.collection("users").authWithPassword(parsed.data.identity, parsed.data.password);
     } catch (caught) {
       error = caught;
     }
@@ -52,7 +52,7 @@ function LoginPage() {
       const message = error instanceof Error ? error.message : "تعذر تسجيل الدخول";
       const raw = message.toLowerCase();
       const msg = raw.includes("invalid login")
-        ? "البريد أو كلمة المرور غير صحيحة"
+        ? "البريد أو اسم المستخدم أو كلمة المرور غير صحيحة"
         : raw.includes("fetch") || raw.includes("network")
             ? "تعذر الاتصال بالخادم، حاول مرة أخرى"
             : message;
@@ -81,15 +81,15 @@ function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">البريد الإلكتروني</Label>
+            <Label htmlFor="identity">البريد الإلكتروني أو اسم المستخدم</Label>
             <Input
-              id="email"
-              type="email"
+              id="identity"
+              type="text"
               dir="ltr"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              autoComplete="username"
+              value={identity}
+              onChange={(e) => setIdentity(e.target.value)}
+              placeholder="you@example.com أو username"
               required
             />
           </div>

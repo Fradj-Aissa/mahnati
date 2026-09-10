@@ -35,14 +35,26 @@ export const getAdminStats = createServerFn({ method: "GET" }).middleware([requi
     totalCourses: courses.totalItems,
     totalArtisans: artisans.totalItems,
     totalSessions: sessions.totalItems,
-    recent: users.slice(0, 5).map((user) => ({ id: user.id, full_name: user.name, email: user.email, created_at: user.created })),
+    recent: users.slice(0, 5).map((user) => ({ id: user.id, full_name: user.name, username: user.username, email: user.email, created_at: user.created })),
   };
 });
 
 export const listUsers = createServerFn({ method: "GET" }).middleware([requirePocketBaseAuth]).handler(async ({ context }) => {
   requireAdmin(context.role);
-  const users = await (await admin()).collection("users").getFullList({ sort: "-created" });
-  return users.map((user) => ({ id: user.id, full_name: user.name, email: user.email, avatar_url: user.avatar_url, created_at: user.created, roles: user.role ? [user.role] : [] }));
+  const pb = await admin();
+  const users = await pb.collection("users").getFullList({ sort: "-created" });
+  return users.map((user) => ({
+    id: user.id,
+    full_name: user.name,
+    username: user.username,
+    email: user.email,
+    phone: user.phone,
+    contact_method: user.contact_method,
+    date_of_birth: user.date_of_birth,
+    profile_picture: user.avatar ? pb.files.getURL(user, user.avatar) : user.avatar_url || null,
+    created_at: user.created,
+    roles: user.role ? [user.role] : [],
+  }));
 });
 
 export const setUserRole = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ userId: recordId, role: roleSchema }).parse(input)).handler(async ({ context, data }) => {

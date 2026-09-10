@@ -68,7 +68,9 @@ function AdminUsers() {
     if (!q) return true;
     return (
       (u.full_name ?? "").toLowerCase().includes(q) ||
-      (u.email ?? "").toLowerCase().includes(q)
+      (u.username ?? "").toLowerCase().includes(q) ||
+      (u.email ?? "").toLowerCase().includes(q) ||
+      (u.phone ?? "").toLowerCase().includes(q)
     );
   });
 
@@ -78,7 +80,7 @@ function AdminUsers() {
         <div className="relative flex-1 max-w-md">
           <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="ابحث بالاسم أو البريد..."
+            placeholder="ابحث بالاسم أو المستخدم أو التواصل..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pr-9"
@@ -99,8 +101,10 @@ function AdminUsers() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-right">الاسم</TableHead>
-                  <TableHead className="text-right">البريد</TableHead>
+                  <TableHead className="text-right">الصورة</TableHead>
+                  <TableHead className="text-right">الاسم واسم المستخدم</TableHead>
+                  <TableHead className="text-right">وسيلة التواصل</TableHead>
+                  <TableHead className="text-right">تاريخ الميلاد</TableHead>
                   <TableHead className="text-right">الدور</TableHead>
                   <TableHead className="text-right">التسجيل</TableHead>
                   <TableHead className="text-right">إجراءات</TableHead>
@@ -111,8 +115,26 @@ function AdminUsers() {
                   const currentRole = u.roles[0] ?? "student";
                   return (
                     <TableRow key={u.id}>
-                      <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                      <TableCell>
+                        {u.profile_picture ? (
+                          <img src={u.profile_picture} alt="" className="h-10 w-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-sm text-muted-foreground">
+                            {(u.full_name || u.username || "؟").slice(0, 1)}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-medium">{u.full_name || "—"}</p>
+                        <p className="text-xs text-muted-foreground">@{u.username || "—"}</p>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <p>{u.contact_method === "phone" ? (u.phone || "—") : u.email || "—"}</p>
+                        <p className="text-xs">{u.contact_method === "phone" ? u.email : u.phone || "—"}</p>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {u.date_of_birth ? new Date(u.date_of_birth).toLocaleDateString("ar") : "—"}
+                      </TableCell>
                       <TableCell>
                         <Badge className={roleColor[currentRole] || ""} variant="secondary">
                           {roleLabel[currentRole] || currentRole}
@@ -169,7 +191,7 @@ function AdminUsers() {
                 })}
                 {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       لا يوجد نتائج
                     </TableCell>
                   </TableRow>

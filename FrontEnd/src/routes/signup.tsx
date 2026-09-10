@@ -17,15 +17,32 @@ export const Route = createFileRoute("/signup")({
 
 const signupSchema = z.object({
   fullName: z.string().trim().min(2, { message: "الاسم قصير جداً" }).max(100),
-  email: z.string().trim().email({ message: "بريد إلكتروني غير صالح" }).max(255),
+  username: z.string().trim().min(3, { message: "اسم المستخدم يجب أن يكون 3 أحرف على الأقل" }).max(50).regex(/^[a-zA-Z0-9_.-]+$/, { message: "اسم المستخدم يقبل الأحرف والأرقام و _ و . و - فقط" }),
+  email: z.string().trim().email({ message: "بريد إلكتروني غير صالح" }).max(255).optional().or(z.literal("")),
+  contactMethod: z.enum(["email", "phone"]),
+  phone: z.string().trim().regex(/^\+?[0-9\s()-]{8,20}$/, { message: "رقم الهاتف غير صالح" }).optional().or(z.literal("")),
+  dateOfBirth: z.string().min(1, { message: "يرجى إدخال تاريخ الميلاد" }),
+  profilePicture: z.instanceof(File).optional(),
   password: z.string().min(8, { message: "كلمة المرور يجب أن تكون 8 أحرف على الأقل" }).max(72),
+}).superRefine((data, ctx) => {
+  if (data.contactMethod === "email" && !data.email) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["email"], message: "يرجى إدخال البريد الإلكتروني" });
+  }
+  if (data.contactMethod === "phone" && !data.phone) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phone"], message: "يرجى إدخال رقم الهاتف" });
+  }
 });
 
 function SignupPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [contactMethod, setContactMethod] = useState<"email" | "phone">("email");
+  const [phone, setPhone] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [profilePicture, setProfilePicture] = useState<File | undefined>();
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,7 +52,7 @@ function SignupPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const parsed = signupSchema.safeParse({ fullName, email, password });
+    const parsed = signupSchema.safeParse({ fullName, username, email, contactMethod, phone, dateOfBirth, profilePicture, password });
     if (!parsed.success) {
       toast.error("خطأ في البيانات", { description: parsed.error.issues[0].message });
       return;
@@ -44,14 +61,22 @@ function SignupPage() {
     setSubmitting(true);
     let error: unknown;
     try {
-      await pb.collection("users").create({
-        email: parsed.data.email,
-        password: parsed.data.password,
-        passwordConfirm: parsed.data.password,
-        name: parsed.data.fullName,
-        role: "student",
-      });
-      await pb.collection("users").authWithPassword(parsed.data.email, parsed.data.password);
+      const formData = new FormData();
+      formData.append("email", parsed.data.email);
+      formData.append("password", parsed.data.password);
+      formData.append("passwordConfirm", parsed.data.password);
+      formData.append("name", parsed.data.fullName);
+      formData.append("username", parsed.data.username);
+      formData.append("contact_method", parsed.data.contactMethod);
+      formData.append("phone", parsed.data.phone ?? "");
+      formData.append("date_of_birth", parsed.data.dateOfBirth);
+      formData.append("role", "student");
+      if (parsed.data.profilePicture) formData.append("avatar", parsed.data.profilePicture);
+      await pb.collection("users").create(formData);
+      await pb.collection("users").authWithPassword(
+        parsed.data.contactMethod === "phone" ? parsed.data.username : parsed.data.email,
+        parsed.data.password,
+      );
     } catch (caught) {
       error = caught;
     }
@@ -113,7 +138,21 @@ function SignupPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">البريد الإلكتروني</Label>
+            <Label htmlFor="username">اسم المستخدم</Label>
+            <Input
+              id="username"
+              type="text"
+              dir="ltr"
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="mohamed_ahmed"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">البريد الإلكتروني {contactMethod === "email" ? "" : "(اختياري)"}</Label>
             <Input
               id="email"
               type="email"
@@ -122,8 +161,58 @@ function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              required
+              required={contactMethod === "email"}
             />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="contactMethod">وسيلة التواصل المفضلة</Label>
+              <select
+                id="contactMethod"
+                value={contactMethod}
+                onChange={(e) => setContactMethod(e.target.value as "email" | "phone")}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="email">البريد الإلكتروني</option>
+                <option value="phone">رقم الهاتف</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">رقم الهاتف {contactMethod === "phone" ? "" : "(اختياري)"}</Label>
+              <Input
+                id="phone"
+                type="tel"
+                dir="ltr"
+                autoComplete="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+966 50 000 0000"
+                required={contactMethod === "phone"}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="dateOfBirth">تاريخ الميلاد</Label>
+              <Input
+                id="dateOfBirth"
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profilePicture">الصورة الشخصية</Label>
+              <Input
+                id="profilePicture"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => setProfilePicture(e.target.files?.[0])}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

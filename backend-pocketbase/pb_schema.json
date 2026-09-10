@@ -73,7 +73,7 @@
         "name": "email",
         "onlyDomains": [],
         "presentable": false,
-        "required": true,
+        "required": false,
         "system": true,
         "type": "email"
       },
@@ -198,6 +198,59 @@
         "required": false,
         "system": false,
         "type": "text"
+      },
+      {
+        "help": "اسم المستخدم الظاهر في الحساب",
+        "hidden": false,
+        "id": "text_user_username",
+        "max": 50,
+        "min": 3,
+        "name": "username",
+        "pattern": "^[a-zA-Z0-9_.-]+$",
+        "presentable": true,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "رقم الهاتف عند اختياره كوسيلة التواصل",
+        "hidden": false,
+        "id": "text_user_phone",
+        "max": 30,
+        "min": 0,
+        "name": "phone",
+        "pattern": "",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "وسيلة التواصل المفضلة",
+        "hidden": false,
+        "id": "select_user_contact",
+        "maxSelect": 1,
+        "name": "contact_method",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "select",
+        "values": [
+          "email",
+          "phone"
+        ]
+      },
+      {
+        "help": "تاريخ ميلاد المستخدم",
+        "hidden": false,
+        "id": "date_user_birth",
+        "max": "",
+        "min": "",
+        "name": "date_of_birth",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
       }
     ],
     "fileToken": {
@@ -206,7 +259,8 @@
     "id": "_pb_users_auth_",
     "indexes": [
       "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
-      "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''",
+      "CREATE UNIQUE INDEX `idx_username__pb_users_auth_` ON `users` (`username`) WHERE `username` != ''"
     ],
     "listRule": "@request.auth.id != \"\"",
     "manageRule": null,
@@ -237,7 +291,8 @@
     "passwordAuth": {
       "enabled": true,
       "identityFields": [
-        "email"
+        "email",
+        "username"
       ]
     },
     "passwordResetToken": {
