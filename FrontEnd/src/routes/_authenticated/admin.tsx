@@ -16,6 +16,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 const titles: Record<string, string> = {
   "/admin": "نظرة عامة",
   "/admin/users": "إدارة المستخدمين",
+  "/admin/students": "المتدربون المسجلون",
   "/admin/courses": "إدارة الدورات",
   "/admin/artisans": "إدارة الحرفيين",
   "/admin/sessions": "إدارة الجلسات",

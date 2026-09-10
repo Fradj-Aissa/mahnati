@@ -18,6 +18,7 @@ import { toast } from "sonner";
 const items = [
   { title: "نظرة عامة", url: "/admin", icon: LayoutDashboard, exact: true },
   { title: "المستخدمون", url: "/admin/users", icon: Users },
+  { title: "المتدربون", url: "/admin/students", icon: Users },
   { title: "الدورات", url: "/admin/courses", icon: BookOpen },
   { title: "الحرفيون", url: "/admin/artisans", icon: Hammer },
   { title: "الجلسات", url: "/admin/sessions", icon: Calendar },

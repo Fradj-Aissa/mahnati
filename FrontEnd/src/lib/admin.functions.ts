@@ -83,17 +83,6 @@ export const listEnrolledStudents = createServerFn({ method: "GET" }).middleware
   });
 });
 
-export const updateEnrollmentStatus = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).validator(
-  z.object({ enrollmentId: recordId, status: enrollmentStatusSchema }),
-).handler(async ({ context, data }) => {
-  requireAdmin(context.role);
-  await (await admin()).collection("enrollments").update(data.enrollmentId, {
-    status: data.status,
-    ...(data.status === "completed" ? { progress: 100 } : {}),
-  });
-  return { ok: true };
-});
-
 export const setUserRole = createServerFn({ method: "POST" }).middleware([requirePocketBaseAuth]).inputValidator((input: unknown) => z.object({ userId: recordId, role: roleSchema }).parse(input)).handler(async ({ context, data }) => {
   requireAdmin(context.role);
   await (await admin()).collection("users").update(data.userId, { role: data.role });
