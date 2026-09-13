@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, BriefcaseBusiness, Calculator, Camera, Car, Code2, GraduationCap, Hammer, Languages, Palette, Paintbrush, Scissors, ShieldCheck, Smartphone, Sprout, Wrench, Zap, type LucideIcon } from "lucide-react";
+import { ArrowLeft, BookOpen, Calculator, Camera, Car, Code, Hammer, Languages, Palette, Paintbrush, Scissors, Shield, Smartphone, Sprout, Wrench, Zap, type LucideIcon } from "lucide-react";
 import { useHomepageCategories } from "@/hooks/use-courses";
 
 const categoryIconRules: Array<[string[], LucideIcon]> = [
@@ -10,11 +10,10 @@ const categoryIconRules: Array<[string[], LucideIcon]> = [
   [["طلاء", "دهانات"], Paintbrush],
   [["خياطة", "تفصيل"], Scissors],
   [["هاتف", "هواتف"], Smartphone],
-  [["مراقبة", "أمن", "ذكي"], ShieldCheck],
-  [["برمجة", "مواقع", "تطوير"], Code2],
-  [["رياضيات", "فيزياء"], Calculator],
+  [["مراقبة", "أمن", "ذكي"], Shield],
+  [["برمجة", "مواقع", "تطوير"], Code],
+  [["رياضيات", "علوم", "فيزياء", "حساب"], Calculator],
   [["لغة", "لغات", "ترجمة"], Languages],
-  [["دعم مدرسي", "أكاديمي"], GraduationCap],
   [["زراعة", "فلاحة", "مزارع", "ري"], Sprout],
   [["تصوير", "مونتاج"], Camera],
   [["تصميم", "جرافيك"], Palette],
@@ -23,7 +22,7 @@ const categoryIconRules: Array<[string[], LucideIcon]> = [
 
 function getCategoryIcon(title: string): LucideIcon {
   const match = categoryIconRules.find(([keywords]) => keywords.some((keyword) => title.includes(keyword)));
-  return match?.[1] ?? BriefcaseBusiness;
+  return match?.[1] ?? BookOpen;
 }
 
 export function CategoriesSection() {
