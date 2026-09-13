@@ -42,10 +42,15 @@ export function Footer() {
           <div>
             <h4 className="mb-3 text-sm font-semibold text-foreground">التخصصات</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/courses" className="hover:text-foreground">فن الخطابة</Link></li>
-              <li><Link to="/courses" className="hover:text-foreground">اللغات</Link></li>
-              <li><Link to="/courses" className="hover:text-foreground">السباكة</Link></li>
-              <li><Link to="/courses" className="hover:text-foreground">الخياطة</Link></li>
+              {isLoading ? (
+                <li className="text-muted-foreground/70">جارٍ التحميل...</li>
+              ) : (
+                categories.map((category) => (
+                  <li key={category.id}>
+                    <Link to="/courses" className="hover:text-foreground">{category.title}</Link>
+                  </li>
+                ))
+              )}
             </ul>
           </div>
 
