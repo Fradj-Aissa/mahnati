@@ -60,13 +60,13 @@ function CoursesPage() {
 
           <div className="mx-auto mt-8 max-w-xl">
             <div className="flex items-center gap-2 rounded-2xl bg-primary-foreground/95 p-2 backdrop-blur-sm">
-              <Search className="mr-3 h-5 w-5 shrink-0 text-muted-foreground" />
+              <Search className="mr-3 h-5 w-5 shrink-0 text-slate-700" />
               <input
                 type="text"
                 placeholder="ابحث عن دورة..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                className="flex-1 bg-transparent py-2 text-sm text-slate-950 caret-slate-950 placeholder:text-slate-600 focus:outline-none"
               />
             </div>
           </div>

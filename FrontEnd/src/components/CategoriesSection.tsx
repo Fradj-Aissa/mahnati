@@ -1,19 +1,30 @@
 import { motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BriefcaseBusiness, Calculator, Camera, Car, Code2, GraduationCap, Hammer, Languages, Palette, Paintbrush, Scissors, ShieldCheck, Smartphone, Sprout, Wrench, Zap, type LucideIcon } from "lucide-react";
 import { useHomepageCategories } from "@/hooks/use-courses";
-import catSpeaking from "@/assets/cat-speaking.png";
-import catLanguages from "@/assets/cat-languages.png";
-import catPlumbing from "@/assets/cat-plumbing.png";
-import catSewing from "@/assets/cat-sewing.png";
 
-const categoryImageMap = {
-  speaking: catSpeaking,
-  languages: catLanguages,
-  plumbing: catPlumbing,
-  sewing: catSewing,
-  default: catLanguages,
-} as const;
+const categoryIconRules: Array<[string[], LucideIcon]> = [
+  [["ميكانيك", "سيارات"], Car],
+  [["كهرباء", "إلكترونيات", "الكهرباء"], Zap],
+  [["حدادة", "هندسة معدنية"], Hammer],
+  [["طلاء", "دهانات"], Paintbrush],
+  [["خياطة", "تفصيل"], Scissors],
+  [["هاتف", "هواتف"], Smartphone],
+  [["مراقبة", "أمن", "ذكي"], ShieldCheck],
+  [["برمجة", "مواقع", "تطوير"], Code2],
+  [["رياضيات", "فيزياء"], Calculator],
+  [["لغة", "لغات", "ترجمة"], Languages],
+  [["دعم مدرسي", "أكاديمي"], GraduationCap],
+  [["زراعة", "فلاحة", "مزارع", "ري"], Sprout],
+  [["تصوير", "مونتاج"], Camera],
+  [["تصميم", "جرافيك"], Palette],
+  [["سباك", "سباكة"], Wrench],
+];
+
+function getCategoryIcon(title: string): LucideIcon {
+  const match = categoryIconRules.find(([keywords]) => keywords.some((keyword) => title.includes(keyword)));
+  return match?.[1] ?? BriefcaseBusiness;
+}
 
 export function CategoriesSection() {
   const { data: categories = [], isLoading, error } = useHomepageCategories();
@@ -52,45 +63,41 @@ export function CategoriesSection() {
             ))}
 
           {!isLoading &&
-            categories.map((cat, i) => (
-              <motion.div
-                key={cat.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-              >
-                <Link
-                  to="/courses"
-                  search={{ category: cat.title }}
-                  className="group flex h-full flex-col items-center rounded-2xl border border-border bg-card p-8 text-center shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-lg"
+            categories.map((cat, i) => {
+              const CategoryIcon = getCategoryIcon(cat.title);
+              return (
+                <motion.div
+                  key={cat.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.1 }}
                 >
-                  <div className={`flex h-20 w-20 items-center justify-center rounded-2xl ${cat.color}`}>
-                    <img
-                      src={categoryImageMap[cat.imageKey] ?? categoryImageMap.default}
-                      alt={cat.title}
-                      width={48}
-                      height={48}
-                      loading="lazy"
-                      className="h-12 w-12 object-contain"
-                    />
-                  </div>
-                  <div className="mt-5 flex w-full items-center justify-between gap-3">
-                    <h3 className="text-lg font-bold text-foreground">{cat.title}</h3>
-                    <span className="shrink-0 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                      {cat.courseCount} دورات
+                  <Link
+                    to="/courses"
+                    search={{ category: cat.title }}
+                    className="group flex h-full flex-col items-center rounded-2xl border border-border bg-card p-8 text-center shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-lg"
+                  >
+                    <div className={`flex h-20 w-20 items-center justify-center rounded-2xl ${cat.color}`}>
+                      <CategoryIcon aria-label={cat.title} className="h-10 w-10 text-primary" />
+                    </div>
+                    <div className="mt-5 flex w-full items-center justify-between gap-3">
+                      <h3 className="text-lg font-bold text-foreground">{cat.title}</h3>
+                      <span className="shrink-0 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                        {cat.courseCount} دورات
+                      </span>
+                    </div>
+                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                      {cat.description}
+                    </p>
+                    <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                      استكشف التخصص
+                      <ArrowLeft className="h-3.5 w-3.5" />
                     </span>
-                  </div>
-                  <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                    {cat.description}
-                  </p>
-                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                    استكشف التخصص
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                  </span>
-                </Link>
-              </motion.div>
-            ))}
+                  </Link>
+                </motion.div>
+              );
+            })}
         </div>
       </div>
     </section>
