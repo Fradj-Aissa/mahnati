@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Pencil, Trash2, FileText, X } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, Pencil, Trash2, FileText, X, Check, ChevronsUpDown } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -48,6 +50,32 @@ const empty: CourseForm = {
   title: "", category: "", instructor: "", description: "", students: 0, status: "draft", attachments: [], attachmentFiles: [],
 };
 
+const categoryGroups = [
+  {
+    label: "المهن والحرف اليدوية",
+    options: ["ميكانيك السيارات", "كهرباء وإلكترونيات السيارات", "الكهرباء المعمارية", "الحدادة والهندسة المعدنية", "طلاء الجدران والدهانات", "الخياطة والتفصيل"],
+  },
+  {
+    label: "التكنولوجيا والأمن الذكي",
+    options: ["صيانة الهواتف الذكية", "أنظمة المراقبة والأمن الذكي", "البرمجة وتطوير المواقع"],
+  },
+  {
+    label: "العلوم والأكاديميات",
+    options: ["الرياضيات والفيزياء", "اللغات والترجمة", "الدعم المدرسي"],
+  },
+  {
+    label: "الفلاحة والزراعة",
+    options: ["التقنيات الزراعية والري الحديث", "تسيير المزارع وتربية الماشية"],
+  },
+  {
+    label: "الإعلام وصناعة المحتوى",
+    options: ["التصوير والمونتاج الرقمي", "التصميم الجرافيكي"],
+  },
+];
+
+const defaultCategories = categoryGroups.flatMap((group) => group.options);
+const newCategoryOption = "__new_category__";
+
 function AdminCourses() {
   const qc = useQueryClient();
   const list = useServerFn(listCourses);
@@ -61,6 +89,10 @@ function AdminCourses() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<CourseForm>(empty);
   const [savingCourse, setSavingCourse] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["admin-courses"] });
@@ -118,6 +150,8 @@ function AdminCourses() {
   const openCreate = () => {
     setEditId(null);
     setForm(empty);
+    setAddingCategory(false);
+    setNewCategoryName("");
     setOpen(true);
   };
 
@@ -130,7 +164,31 @@ function AdminCourses() {
       attachments: c.attachments ?? [],
       attachmentFiles: [],
     });
+    setAddingCategory(false);
+    setNewCategoryName("");
     setOpen(true);
+  };
+
+  const saveNewCategory = () => {
+    const category = newCategoryName.trim();
+    if (!category) {
+      toast.error("اكتب اسم الفئة الجديدة");
+      return;
+    }
+
+    if (defaultCategories.includes(category) || customCategories.includes(category)) {
+      setForm((prev) => ({ ...prev, category }));
+      setAddingCategory(false);
+      setNewCategoryName("");
+      setCategoryOpen(false);
+      return;
+    }
+
+    setCustomCategories((prev) => [...prev, category]);
+    setForm((prev) => ({ ...prev, category }));
+    setAddingCategory(false);
+    setNewCategoryName("");
+    setCategoryOpen(false);
   };
 
   const submit = async () => {
@@ -195,7 +253,57 @@ function AdminCourses() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>الفئة *</Label>
-                  <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+                  <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" role="combobox" aria-expanded={categoryOpen} className="mt-1 w-full justify-between font-normal">
+                        {form.category || "اختر الفئة"}
+                        <ChevronsUpDown className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0" dir="rtl">
+                      <Command>
+                        <CommandInput placeholder="ابحث عن فئة..." />
+                        <CommandList>
+                          <CommandEmpty>لم يتم العثور على فئة.</CommandEmpty>
+                          {categoryGroups.map((group) => (
+                            <CommandGroup key={group.label} heading={group.label}>
+                              {group.options.map((category) => (
+                                <CommandItem key={category} value={category} onSelect={() => { setForm((prev) => ({ ...prev, category })); setAddingCategory(false); setCategoryOpen(false); }}>
+                                  <Check className={`ml-2 h-4 w-4 ${form.category === category ? "opacity-100" : "opacity-0"}`} />
+                                  {category}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          ))}
+                          {customCategories.length > 0 && (
+                            <CommandGroup heading="فئات مضافة">
+                              {customCategories.map((category) => (
+                                <CommandItem key={category} value={category} onSelect={() => { setForm((prev) => ({ ...prev, category })); setAddingCategory(false); setCategoryOpen(false); }}>
+                                  <Check className={`ml-2 h-4 w-4 ${form.category === category ? "opacity-100" : "opacity-0"}`} />
+                                  {category}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
+                          <CommandItem value={newCategoryOption} onSelect={() => setAddingCategory(true)}>
+                            <Plus className="ml-2 h-4 w-4" />
+                            إضافة فئة جديدة...
+                          </CommandItem>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {addingCategory && (
+                    <div className="mt-2 flex gap-2">
+                      <Input
+                        value={newCategoryName}
+                        placeholder="اسم الفئة الجديدة"
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveNewCategory(); } }}
+                      />
+                      <Button type="button" onClick={saveNewCategory}>حفظ</Button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label>المدرّب *</Label>
