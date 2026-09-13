@@ -150,6 +150,7 @@ function AdminCourses() {
   const openCreate = () => {
     setEditId(null);
     setForm(empty);
+    setCategoryOpen(false);
     setAddingCategory(false);
     setNewCategoryName("");
     setOpen(true);
@@ -164,6 +165,7 @@ function AdminCourses() {
       attachments: c.attachments ?? [],
       attachmentFiles: [],
     });
+    setCategoryOpen(false);
     setAddingCategory(false);
     setNewCategoryName("");
     setOpen(true);
@@ -260,7 +262,7 @@ function AdminCourses() {
                         <ChevronsUpDown className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0" dir="rtl">
+                    <PopoverContent align="start" className="z-[100] max-h-[min(420px,70vh)] w-[var(--radix-popover-trigger-width)] p-0" dir="rtl">
                       <Command>
                         <CommandInput placeholder="ابحث عن فئة..." />
                         <CommandList>
@@ -285,7 +287,7 @@ function AdminCourses() {
                               ))}
                             </CommandGroup>
                           )}
-                          <CommandItem value={newCategoryOption} onSelect={() => setAddingCategory(true)}>
+                          <CommandItem value={newCategoryOption} onSelect={() => { setAddingCategory(true); setCategoryOpen(false); }}>
                             <Plus className="ml-2 h-4 w-4" />
                             إضافة فئة جديدة...
                           </CommandItem>
