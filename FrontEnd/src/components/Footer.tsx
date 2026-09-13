@@ -1,7 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { GraduationCap, Instagram, Facebook } from "lucide-react";
+import { useHomepageCategories } from "@/hooks/use-courses";
 
 export function Footer() {
+  const { data: categories = [], isLoading } = useHomepageCategories();
+
   return (
     <footer className="border-t border-border bg-muted/30">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">

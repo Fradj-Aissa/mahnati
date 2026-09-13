@@ -78,7 +78,7 @@ export function HeroSection() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
-              <Link to="/">تعرف علينا</Link>
+              <Link to="/about">تعرف علينا</Link>
             </Button>
           </motion.div>
         </div>
