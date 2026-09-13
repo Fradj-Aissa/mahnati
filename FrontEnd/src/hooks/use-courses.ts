@@ -68,7 +68,7 @@ function normalizeCategoryTitle(rawCategory: string): string {
   if (lower.includes("سباك") || lower.includes("plumbing") || lower.includes("pipe")) return "السباكة";
   if (lower.includes("خياطة") || lower.includes("تفصيل") || lower.includes("sewing") || lower.includes("tailoring")) return "الخياطة والتفصيل";
 
-  return "أخرى";
+  return value;
 }
 
 function normalizeAttachments(value: unknown): string[] {

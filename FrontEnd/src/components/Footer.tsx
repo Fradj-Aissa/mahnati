@@ -48,11 +48,14 @@ export function Footer() {
               {isLoading ? (
                 <li className="text-muted-foreground/70">جارٍ التحميل...</li>
               ) : (
-                categories.map((category) => (
+                categories.slice(0, 5).map((category) => (
                   <li key={category.id}>
-                    <Link to="/courses" className="hover:text-foreground">{category.title}</Link>
+                    <Link to="/courses" search={{ category: category.title }} className="hover:text-foreground">{category.title}</Link>
                   </li>
                 ))
+              )}
+              {!isLoading && categories.length > 5 && (
+                <li><Link to="/courses" className="font-medium text-primary hover:text-primary/80">عرض جميع التخصصات</Link></li>
               )}
             </ul>
           </div>

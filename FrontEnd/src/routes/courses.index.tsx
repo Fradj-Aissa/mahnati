@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { Users, Search, Filter, BookOpen, Star } from "lucide-react";
@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { usePublishedCourses } from "@/hooks/use-courses";
 import { CoursesPageSkeleton } from "@/components/skeletons/CoursesPageSkeleton";
 import { CourseCardSkeleton } from "@/components/skeletons/HomePageSkeleton";
+import { z } from "zod";
 
 export const Route = createFileRoute("/courses/")({
+  validateSearch: z.object({ category: z.string().optional() }),
   pendingComponent: CoursesPageSkeleton,
   head: () => ({
     meta: [
@@ -23,9 +25,16 @@ export const Route = createFileRoute("/courses/")({
 });
 
 function CoursesPage() {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { category: categoryFromUrl } = Route.useSearch();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryFromUrl ?? null);
   const [searchQuery, setSearchQuery] = useState("");
   const { data: courses = [], isLoading } = usePublishedCourses();
+
+  useEffect(() => {
+    setSelectedCategory(categoryFromUrl ?? null);
+  }, [categoryFromUrl]);
+
+  const selectCategory = (category: string | null) => setSelectedCategory(category);
 
   const categories = Array.from(new Set(courses.map((c) => c.category)));
 
@@ -72,7 +81,7 @@ function CoursesPage() {
           <Button
             variant={selectedCategory === null ? "default" : "outline"}
             size="sm"
-            onClick={() => setSelectedCategory(null)}
+            onClick={() => selectCategory(null)}
           >
             الكل
           </Button>
@@ -81,7 +90,7 @@ function CoursesPage() {
               key={cat}
               variant={selectedCategory === cat ? "default" : "outline"}
               size="sm"
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => selectCategory(cat)}
             >
               {cat}
             </Button>

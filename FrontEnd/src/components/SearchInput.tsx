@@ -62,8 +62,8 @@ export function SearchInput({ className, onNavigate, variant = "default" }: Sear
         className={cn(
           "min-w-0 pr-9 pl-8 text-sm",
           variant === "hero"
-            ? "h-12 rounded-xl border-0 bg-primary-foreground/95 text-slate-900 placeholder:text-slate-500 shadow-hero focus-visible:bg-primary-foreground dark:text-slate-950 dark:placeholder:text-slate-600"
-            : "h-9 rounded-full border-border/70 bg-muted/45 focus-visible:bg-background",
+            ? "h-12 rounded-xl border-0 bg-primary-foreground/95 text-foreground placeholder:text-muted-foreground/60 shadow-hero focus-visible:bg-primary-foreground"
+            : "h-9 rounded-full border-border/70 bg-muted/45 text-foreground placeholder:text-muted-foreground/60 focus-visible:bg-background",
         )}
         aria-label="البحث في المنصة"
       />
